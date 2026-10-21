@@ -1,0 +1,457 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T16:05:53.068081+00:00",
+  "title": "Design System: Mail Studio",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Primary",
+        "tonalRamp": [
+          "oklch(15.00% 0.06034 166.22)",
+          "oklch(26.43% 0.06034 166.22)",
+          "oklch(37.86% 0.06034 166.22)",
+          "oklch(49.29% 0.06034 166.22)",
+          "oklch(60.71% 0.06034 166.22)",
+          "oklch(72.14% 0.06034 166.22)",
+          "oklch(83.57% 0.06034 166.22)",
+          "oklch(95.00% 0.06034 166.22)"
+        ]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Primary Hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.05372 164.88)",
+          "oklch(26.43% 0.05372 164.88)",
+          "oklch(37.86% 0.05372 164.88)",
+          "oklch(49.29% 0.05372 164.88)",
+          "oklch(60.71% 0.05372 164.88)",
+          "oklch(72.14% 0.05372 164.88)",
+          "oklch(83.57% 0.05372 164.88)",
+          "oklch(95.00% 0.05372 164.88)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.03126 169.70)",
+          "oklch(26.43% 0.03126 169.70)",
+          "oklch(37.86% 0.03126 169.70)",
+          "oklch(49.29% 0.03126 169.70)",
+          "oklch(60.71% 0.03126 169.70)",
+          "oklch(72.14% 0.03126 169.70)",
+          "oklch(83.57% 0.03126 169.70)",
+          "oklch(95.00% 0.03126 169.70)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.02286 163.96)",
+          "oklch(26.43% 0.02286 163.96)",
+          "oklch(37.86% 0.02286 163.96)",
+          "oklch(49.29% 0.02286 163.96)",
+          "oklch(60.71% 0.02286 163.96)",
+          "oklch(72.14% 0.02286 163.96)",
+          "oklch(83.57% 0.02286 163.96)",
+          "oklch(95.00% 0.02286 163.96)"
+        ]
+      },
+      "workspace": {
+        "role": "neutral",
+        "displayName": "Workspace",
+        "tonalRamp": [
+          "oklch(15.00% 0.00904 134.87)",
+          "oklch(26.43% 0.00904 134.87)",
+          "oklch(37.86% 0.00904 134.87)",
+          "oklch(49.29% 0.00904 134.87)",
+          "oklch(60.71% 0.00904 134.87)",
+          "oklch(72.14% 0.00904 134.87)",
+          "oklch(83.57% 0.00904 134.87)",
+          "oklch(95.00% 0.00904 134.87)"
+        ]
+      },
+      "navigation": {
+        "role": "neutral",
+        "displayName": "Navigation",
+        "tonalRamp": [
+          "oklch(15.00% 0.00979 125.68)",
+          "oklch(26.43% 0.00979 125.68)",
+          "oklch(37.86% 0.00979 125.68)",
+          "oklch(49.29% 0.00979 125.68)",
+          "oklch(60.71% 0.00979 125.68)",
+          "oklch(72.14% 0.00979 125.68)",
+          "oklch(83.57% 0.00979 125.68)",
+          "oklch(95.00% 0.00979 125.68)"
+        ]
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "Page",
+        "tonalRamp": [
+          "oklch(15.00% 0.00409 121.56)",
+          "oklch(26.43% 0.00409 121.56)",
+          "oklch(37.86% 0.00409 121.56)",
+          "oklch(49.29% 0.00409 121.56)",
+          "oklch(60.71% 0.00409 121.56)",
+          "oklch(72.14% 0.00409 121.56)",
+          "oklch(83.57% 0.00409 121.56)",
+          "oklch(95.00% 0.00409 121.56)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "tonalRamp": [
+          "oklch(15.00% 0.00408 121.56)",
+          "oklch(26.43% 0.00408 121.56)",
+          "oklch(37.86% 0.00408 121.56)",
+          "oklch(49.29% 0.00408 121.56)",
+          "oklch(60.71% 0.00408 121.56)",
+          "oklch(72.14% 0.00408 121.56)",
+          "oklch(83.57% 0.00408 121.56)",
+          "oklch(95.00% 0.00408 121.56)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Border",
+        "tonalRamp": [
+          "oklch(15.00% 0.01100 149.85)",
+          "oklch(26.43% 0.01100 149.85)",
+          "oklch(37.86% 0.01100 149.85)",
+          "oklch(49.29% 0.01100 149.85)",
+          "oklch(60.71% 0.01100 149.85)",
+          "oklch(72.14% 0.01100 149.85)",
+          "oklch(83.57% 0.01100 149.85)",
+          "oklch(95.00% 0.01100 149.85)"
+        ]
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "Field Border",
+        "tonalRamp": [
+          "oklch(15.00% 0.01534 151.74)",
+          "oklch(26.43% 0.01534 151.74)",
+          "oklch(37.86% 0.01534 151.74)",
+          "oklch(49.29% 0.01534 151.74)",
+          "oklch(60.71% 0.01534 151.74)",
+          "oklch(72.14% 0.01534 151.74)",
+          "oklch(83.57% 0.01534 151.74)",
+          "oklch(95.00% 0.01534 151.74)"
+        ]
+      },
+      "control-hover": {
+        "role": "neutral",
+        "displayName": "Control Hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.00898 134.87)",
+          "oklch(26.43% 0.00898 134.87)",
+          "oklch(37.86% 0.00898 134.87)",
+          "oklch(49.29% 0.00898 134.87)",
+          "oklch(60.71% 0.00898 134.87)",
+          "oklch(72.14% 0.00898 134.87)",
+          "oklch(83.57% 0.00898 134.87)",
+          "oklch(95.00% 0.00898 134.87)"
+        ]
+      },
+      "control-hover-border": {
+        "role": "neutral",
+        "displayName": "Control Hover Border",
+        "tonalRamp": [
+          "oklch(15.00% 0.02874 150.31)",
+          "oklch(26.43% 0.02874 150.31)",
+          "oklch(37.86% 0.02874 150.31)",
+          "oklch(49.29% 0.02874 150.31)",
+          "oklch(60.71% 0.02874 150.31)",
+          "oklch(72.14% 0.02874 150.31)",
+          "oklch(83.57% 0.02874 150.31)",
+          "oklch(95.00% 0.02874 150.31)"
+        ]
+      },
+      "selection": {
+        "role": "primary",
+        "displayName": "Selection",
+        "tonalRamp": [
+          "oklch(15.00% 0.07879 142.20)",
+          "oklch(26.43% 0.07879 142.20)",
+          "oklch(37.86% 0.07879 142.20)",
+          "oklch(49.29% 0.07879 142.20)",
+          "oklch(60.71% 0.07879 142.20)",
+          "oklch(72.14% 0.07879 142.20)",
+          "oklch(83.57% 0.07879 142.20)",
+          "oklch(95.00% 0.07879 142.20)"
+        ]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Accent",
+        "tonalRamp": [
+          "oklch(15.00% 0.13392 42.35)",
+          "oklch(26.43% 0.13392 42.35)",
+          "oklch(37.86% 0.13392 42.35)",
+          "oklch(49.29% 0.13392 42.35)",
+          "oklch(60.71% 0.13392 42.35)",
+          "oklch(72.14% 0.13392 42.35)",
+          "oklch(83.57% 0.13392 42.35)",
+          "oklch(95.00% 0.13392 42.35)"
+        ]
+      },
+      "nav-active": {
+        "role": "neutral",
+        "displayName": "Nav Active",
+        "tonalRamp": [
+          "oklch(15.00% 0.02464 129.90)",
+          "oklch(26.43% 0.02464 129.90)",
+          "oklch(37.86% 0.02464 129.90)",
+          "oklch(49.29% 0.02464 129.90)",
+          "oklch(60.71% 0.02464 129.90)",
+          "oklch(72.14% 0.02464 129.90)",
+          "oklch(83.57% 0.02464 129.90)",
+          "oklch(95.00% 0.02464 129.90)"
+        ]
+      },
+      "nav-active-ink": {
+        "role": "neutral",
+        "displayName": "Nav Active Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.05646 161.34)",
+          "oklch(26.43% 0.05646 161.34)",
+          "oklch(37.86% 0.05646 161.34)",
+          "oklch(49.29% 0.05646 161.34)",
+          "oklch(60.71% 0.05646 161.34)",
+          "oklch(72.14% 0.05646 161.34)",
+          "oklch(83.57% 0.05646 161.34)",
+          "oklch(95.00% 0.05646 161.34)"
+        ]
+      },
+      "preview": {
+        "role": "neutral",
+        "displayName": "Preview",
+        "tonalRamp": [
+          "oklch(15.00% 0.00981 125.68)",
+          "oklch(26.43% 0.00981 125.68)",
+          "oklch(37.86% 0.00981 125.68)",
+          "oklch(49.29% 0.00981 125.68)",
+          "oklch(60.71% 0.00981 125.68)",
+          "oklch(72.14% 0.00981 125.68)",
+          "oklch(83.57% 0.00981 125.68)",
+          "oklch(95.00% 0.00981 125.68)"
+        ]
+      },
+      "segmented": {
+        "role": "neutral",
+        "displayName": "Segmented",
+        "tonalRamp": [
+          "oklch(15.00% 0.01650 133.83)",
+          "oklch(26.43% 0.01650 133.83)",
+          "oklch(37.86% 0.01650 133.83)",
+          "oklch(49.29% 0.01650 133.83)",
+          "oklch(60.71% 0.01650 133.83)",
+          "oklch(72.14% 0.01650 133.83)",
+          "oklch(83.57% 0.01650 133.83)",
+          "oklch(95.00% 0.01650 133.83)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Library page headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings."
+      },
+      "card-title": {
+        "displayName": "Card Title",
+        "purpose": "Document names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Explanatory paragraphs."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Persistent field labels."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Standard button labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "paper-and-toast",
+        "value": "0 14px 48px #1c36251a",
+        "purpose": "Lift document paper and transient feedback."
+      },
+      {
+        "name": "dialog",
+        "value": "0 24px 90px #12271f40",
+        "purpose": "Separate modal panels from the workspace."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-state",
+        "value": "background .15s ease,border-color .15s ease",
+        "purpose": "Button hover feedback."
+      },
+      {
+        "name": "toast-entry",
+        "value": "toast-in .22s ease-out",
+        "purpose": "Move transient feedback upward by 8px on entry."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation:none!important;transition:none!important",
+        "purpose": "Remove motion when prefers-reduced-motion is reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "760px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1150px"
+      },
+      {
+        "name": "wide",
+        "value": "1500px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Export email button",
+      "kind": "button",
+      "description": "The main action in a toolbar or form.",
+      "html": "<button class=\"ds-primary\">Export email</button>",
+      "css": ".ds-primary{font-family:\"DM Sans Variable\",sans-serif;font-size:14px;font-weight:550;line-height:1.35;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line,#dce3dd);border-radius:7px;color:var(--ink,#273d35);background:var(--paper,#fff);cursor:pointer;transition:background .15s ease,border-color .15s ease;background:var(--accent,#285745);border-color:var(--accent,#285745);color:white;}.ds-primary:hover:not(:disabled){background:#1c4434;border-color:#1c4434;} .ds-primary:focus-visible{outline:2px solid var(--accent,#285745);outline-offset:3px;} .ds-primary:disabled{opacity:.48;cursor:default;} @media(prefers-reduced-motion:reduce){.ds-primary{transition:none;}}",
+      "refersTo": "button-primary"
+    },
+    {
+      "name": "Preview button",
+      "kind": "button",
+      "description": "Supporting actions with a quiet border.",
+      "html": "<button class=\"ds-secondary\">Preview</button>",
+      "css": ".ds-secondary{font-family:\"DM Sans Variable\",sans-serif;font-size:14px;font-weight:550;line-height:1.35;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line,#dce3dd);border-radius:7px;color:var(--ink,#273d35);background:var(--paper,#fff);cursor:pointer;transition:background .15s ease,border-color .15s ease;}.ds-secondary:hover:not(:disabled){background:#f1f5ef;border-color:#afc1b2;} .ds-secondary:focus-visible{outline:2px solid var(--accent,#285745);outline-offset:3px;} .ds-secondary:disabled{opacity:.48;cursor:default;} @media(prefers-reduced-motion:reduce){.ds-secondary{transition:none;}}",
+      "refersTo": "button-secondary"
+    },
+    {
+      "name": "Remove button",
+      "kind": "button",
+      "description": "A small supporting action below content.",
+      "html": "<button class=\"ds-text\">Remove</button>",
+      "css": ".ds-text{font-family:\"DM Sans Variable\",sans-serif;font-size:14px;font-weight:550;line-height:1.35;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line,#dce3dd);border-radius:7px;color:var(--ink,#273d35);background:var(--paper,#fff);cursor:pointer;transition:background .15s ease,border-color .15s ease;border:0;background:transparent;padding:6px 0;font-size:12px;}.ds-text:hover:not(:disabled){background:#f1f5ef;border-color:#afc1b2;} .ds-text:focus-visible{outline:2px solid var(--accent,#285745);outline-offset:3px;} .ds-text:disabled{opacity:.48;cursor:default;} @media(prefers-reduced-motion:reduce){.ds-text{transition:none;}}",
+      "refersTo": "button-text"
+    },
+    {
+      "name": "Icon button",
+      "kind": "button",
+      "description": "A labeled compact action for a toolbar or dialog.",
+      "html": "<button class=\"ds-icon\" aria-label=\"Close\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button>",
+      "css": ".ds-icon{font-family:\"DM Sans Variable\",sans-serif;font-size:14px;font-weight:550;line-height:1.35;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line,#dce3dd);border-radius:7px;color:var(--ink,#273d35);background:var(--paper,#fff);cursor:pointer;transition:background .15s ease,border-color .15s ease;padding:7px;border:0;background:transparent;}.ds-icon:hover:not(:disabled){background:#f1f5ef;border-color:#afc1b2;} .ds-icon:focus-visible{outline:2px solid var(--accent,#285745);outline-offset:3px;} .ds-icon:disabled{opacity:.48;cursor:default;} @media(prefers-reduced-motion:reduce){.ds-icon{transition:none;}}",
+      "refersTo": "button-icon"
+    },
+    {
+      "name": "Labeled field",
+      "kind": "input",
+      "description": "A persistent label above an editable value.",
+      "html": "<label class=\"ds-field\"><span>Name</span><input value=\"Monthly newsletter\"/></label>",
+      "css": ".ds-field{font-family:\"DM Sans Variable\",sans-serif;display:block;color:var(--ink,#273d35);max-width:320px;margin-bottom:16px;}.ds-field>span{display:block;margin-bottom:7px;font-size:12px;font-weight:600;}.ds-field input{font-family:\"DM Sans Variable\",sans-serif;font-size:14px;color:var(--ink,#273d35);width:100%;min-width:0;padding:9px 10px;border:1px solid #ccd6ce;border-radius:6px;background:var(--paper,#fff);}.ds-field input:focus{border-color:var(--accent,#285745);}.ds-field input:focus-visible{outline:2px solid var(--accent,#285745);outline-offset:3px;}",
+      "refersTo": "input"
+    },
+    {
+      "name": "Library navigation",
+      "kind": "nav",
+      "description": "Tinted selection in persistent library navigation.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Library\"><button class=\"ds-nav-item ds-nav-active\" aria-current=\"page\">All designs</button><button class=\"ds-nav-item\">Shared templates</button></nav>",
+      "css": ".ds-nav{background:#f0f3ec;padding:16px;display:flex;flex-direction:column;gap:4px;max-width:228px;}.ds-nav-item{font-family:\"DM Sans Variable\",sans-serif;font-size:14px;font-weight:550;line-height:1.35;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line,#dce3dd);border-radius:7px;color:var(--ink,#273d35);background:var(--paper,#fff);cursor:pointer;transition:background .15s ease,border-color .15s ease;justify-content:flex-start;width:100%;border:0;padding:11px 13px;background:transparent;color:#57645a;font-size:13px;}.ds-nav-active{background:#dfe8d7;color:#234b38;}.ds-nav-item:hover:not(:disabled){background:#f1f5ef;border-color:#afc1b2;} .ds-nav-item:focus-visible{outline:2px solid var(--accent,#285745);outline-offset:3px;} .ds-nav-item:disabled{opacity:.48;cursor:default;} @media(prefers-reduced-motion:reduce){.ds-nav-item{transition:none;}}",
+      "refersTo": "navigation-active"
+    },
+    {
+      "name": "Document card",
+      "kind": "card",
+      "description": "A thumbnail frame with document metadata underneath.",
+      "html": "<article class=\"ds-card\"><button class=\"ds-preview\" aria-label=\"Open Monthly newsletter\"><span class=\"ds-sheet\"><strong>Monthly newsletter</strong><span>News and updates for our readers.</span></span></button><div class=\"ds-meta\"><h3>Monthly newsletter</h3><small>Design</small></div></article>",
+      "css": ".ds-card{font-family:\"DM Sans Variable\",sans-serif;color:var(--ink,#273d35);max-width:340px;min-width:0;}.ds-preview{font-family:\"DM Sans Variable\",sans-serif;font-size:14px;font-weight:550;line-height:1.35;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line,#dce3dd);border-radius:7px;color:var(--ink,#273d35);background:var(--paper,#fff);cursor:pointer;transition:background .15s ease,border-color .15s ease;display:block;width:100%;height:210px;padding:22px 25px 0;border-radius:10px;background:#edf0e9;overflow:hidden;}.ds-sheet{display:flex;flex-direction:column;gap:9px;background:white;padding:24px;min-height:100%;text-align:left;}.ds-sheet strong{font-size:14px;font-weight:650;line-height:1.2;}.ds-sheet>span{font-size:7px;line-height:1.6;}.ds-meta{padding-top:15px;}.ds-meta h3{margin:0;font-size:15px;font-weight:600;}.ds-meta small{display:block;margin-top:5px;font-size:11px;color:var(--muted,#607068);}.ds-preview:hover:not(:disabled){background:#f1f5ef;border-color:#afc1b2;} .ds-preview:focus-visible{outline:2px solid var(--accent,#285745);outline-offset:3px;} .ds-preview:disabled{opacity:.48;cursor:default;} @media(prefers-reduced-motion:reduce){.ds-preview{transition:none;}}",
+      "refersTo": "design-preview"
+    },
+    {
+      "name": "Segmented preview",
+      "kind": "custom",
+      "description": "Switch between preview output modes.",
+      "html": "<div class=\"ds-segmented\" role=\"group\" aria-label=\"Preview mode\"><button class=\"ds-segment ds-segment-active\" aria-pressed=\"true\">Full email</button><button class=\"ds-segment\" aria-pressed=\"false\">Copied content</button></div>",
+      "css": ".ds-segmented{display:inline-flex;background:#dfe6db;padding:3px;border-radius:7px;gap:2px;}.ds-segment{font-family:\"DM Sans Variable\",sans-serif;font-size:14px;font-weight:550;line-height:1.35;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line,#dce3dd);border-radius:7px;color:var(--ink,#273d35);background:var(--paper,#fff);cursor:pointer;transition:background .15s ease,border-color .15s ease;background:transparent;border:0;font-size:12px;padding:6px 10px;}.ds-segment-active{background:white;color:#254e38;}.ds-segment:hover:not(:disabled){background:#f1f5ef;border-color:#afc1b2;} .ds-segment:focus-visible{outline:2px solid var(--accent,#285745);outline-offset:3px;} .ds-segment:disabled{opacity:.48;cursor:default;} @media(prefers-reduced-motion:reduce){.ds-segment{transition:none;}}",
+      "refersTo": "segmented"
+    },
+    {
+      "name": "Editor tabs",
+      "kind": "nav",
+      "description": "Underline selection for editor tool panels.",
+      "html": "<div class=\"ds-tabs\" role=\"group\" aria-label=\"Editor panels\"><button class=\"ds-tab ds-tab-active\" aria-pressed=\"true\">Blocks</button><button class=\"ds-tab\" aria-pressed=\"false\">Layers</button><button class=\"ds-tab\" aria-pressed=\"false\">Sections</button></div>",
+      "css": ".ds-tabs{display:flex;border-bottom:1px solid var(--line,#dce3dd);padding:0 10px;background:#fafbf8;}.ds-tab{font-family:\"DM Sans Variable\",sans-serif;font-size:14px;font-weight:550;line-height:1.35;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line,#dce3dd);border-radius:7px;color:var(--ink,#273d35);background:var(--paper,#fff);cursor:pointer;transition:background .15s ease,border-color .15s ease;background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;padding:15px 6px;font-size:11px;}.ds-tab-active{border-bottom-color:var(--accent,#285745);color:var(--accent,#285745);}.ds-tab:hover:not(:disabled){background:#f1f5ef;border-color:#afc1b2;} .ds-tab:focus-visible{outline:2px solid var(--accent,#285745);outline-offset:3px;} .ds-tab:disabled{opacity:.48;cursor:default;} @media(prefers-reduced-motion:reduce){.ds-tab{transition:none;}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Everyday Editing Workspace",
+    "overview": "Mail Studio is a compact, calm editing workspace. Green-tinted surfaces and dark\nink frame white email paper; the document remains visually dominant. The same\nrestrained controls carry through the library, editor, and dialogs.\n\nThe library gives documents room to be recognized through thumbnails. Editing\nputs compact tools beside a scrollable canvas, with explicit selection and\ncontinuously visible save status. Paper illustration on the sign-in screen adds\nwarmth without becoming decorative chrome throughout the application.",
+    "keyCharacteristics": [
+      "Green-tinted neutral surfaces with a deep green action color.",
+      "Self-hosted DM Sans, compact controls, and clear document hierarchy.",
+      "Tonal separation, fine borders, and softly raised document paper.",
+      "Lucide line icons and visible keyboard focus."
+    ],
+    "rules": [
+      {
+        "name": "The Document First Rule",
+        "body": "Keep the paper distinct from surrounding green-tinted surfaces, and reserve the strong green fill for actions and selected controls.",
+        "section": "colors"
+      },
+      {
+        "name": "The Content Boundary Rule",
+        "body": "Application typography styles the editing tools; the email's own content and compatible output styles determine the document.",
+        "section": "typography"
+      },
+      {
+        "name": "The Quiet Depth Rule",
+        "body": "Keep routine navigation and form controls flat; use soft elevation for document paper and overlays.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the email visually dominant and its width meaningful within the scrollable workspace.",
+      "Do reuse deep green actions, tinted tool surfaces, and white document paper.",
+      "Do preserve explicit selection, visible focus, labeled icon controls, and keyboard alternatives to dragging.",
+      "Do allow English and French labels to fit the same compact interface.",
+      "Do distinguish save status and actionable errors from ordinary supporting text."
+    ],
+    "donts": [
+      "Don't replace Lucide line icons with decorative glyph substitutes.",
+      "Don't give routine controls the shadows reserved for paper and overlays.",
+      "Don't apply application type styling to exported email content.",
+      "Don't remove focus or selection cues to make the interface appear cleaner."
+    ]
+  }
+}
