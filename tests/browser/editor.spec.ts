@@ -2,6 +2,65 @@ import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { simpleParser } from 'mailparser';
 import sharp from 'sharp';
+import { blank, node } from '../../shared/model';
+
+test('mobile columns grow with their contents and nested rows stay contained', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('Email address').fill('test@example.test');
+  await page.getByLabel('Password', { exact: true }).fill('test-password-12345');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Create an email', exact: true })).toBeVisible();
+  const document = blank();
+  const row = node('row');
+  row.style.vertical = 'middle';
+  row.children[0].style.width = 30;
+  row.children[1].style.width = 70;
+  const poster = node('image');
+  poster.remoteSrc = 'https://example.test/poster.png';
+  const nested = node('row');
+  nested.style.vertical = 'bottom';
+  nested.children[0].children = [node('text', 'A long paragraph that wraps across multiple lines. '.repeat(10))];
+  nested.children[1].children = [node('heading', 'Another heading')];
+  row.children[0].children = [poster];
+  row.children[1].children = [nested];
+  document.nodes[0].children = [row, node('heading', 'Following section')];
+  const png = await sharp({ create: { width: 240, height: 360, channels: 3, background: '#98b84a' } }).png().toBuffer();
+  await page.route(poster.remoteSrc, route => route.fulfill({ contentType: 'image/png', body: png }));
+  const response = await page.request.post('/api/templates', {
+    data: { name: 'Mobile layout regression', kind: 'template', collectionId: null, document },
+    headers: { Origin: new URL(page.url()).origin },
+  });
+  expect(response.ok()).toBe(true);
+  await page.reload();
+  await page.getByRole('button', { name: 'Open Mobile layout regression', exact: true }).click();
+  const outer = page.locator(`[data-node-id="${row.id}"]`);
+  const columns = outer.locator(':scope > .kind-column');
+  const desktop = await columns.evaluateAll(items => items.map(el => el.getBoundingClientRect().width));
+  expect(desktop[1]).toBeGreaterThan(desktop[0]);
+  await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+  await expect(page.locator('.email-canvas')).toHaveCSS('width', '375px');
+  await expect(outer.locator('img')).toHaveJSProperty('naturalWidth', 240);
+  const issues = await page.locator('.email-canvas').evaluate(canvas => {
+    const errors: string[] = [];
+    for (const row of canvas.querySelectorAll('.kind-row')) {
+      const bounds = row.getBoundingClientRect();
+      let bottom = bounds.top;
+      for (const column of row.querySelectorAll(':scope > .kind-column')) {
+        const rect = column.getBoundingClientRect();
+        if (rect.top < bottom - 1 || rect.bottom > bounds.bottom + 1) errors.push('overlapping columns');
+        if (Math.abs(rect.width - bounds.width) > 1) errors.push('column not stretched');
+        for (const content of column.querySelectorAll('.canvas-slot')) {
+          if (content.getBoundingClientRect().bottom > rect.bottom + 1) errors.push('content overflow');
+        }
+        bottom = rect.bottom;
+      }
+    }
+    return errors;
+  });
+  expect(issues).toEqual([]);
+  await page.getByRole('button', { name: 'Desktop', exact: true }).click();
+  expect(await columns.evaluateAll(items => items.map(el => el.getBoundingClientRect().width))).toEqual(desktop);
+});
 
 test('drag preview matches nested insertion and clears after drop or cancellation', async ({ page }) => {
   await page.goto('/');
