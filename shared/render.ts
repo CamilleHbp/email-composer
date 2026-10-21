@@ -38,11 +38,11 @@ export function renderNode(n: EmailNode, options: RenderOptions, css: string[]):
     const cells = n.children.map((c, i) => {
       const content = renderNode({ ...c, style: { ...c.style, fontFamily: c.style.fontFamily ?? s.fontFamily } }, { ...options, containerWidth: columnSpace * c.style.width / sum }, css);
       // Clipboard output uses fluid inline-block columns: wrapping does not need head CSS.
-      if (options.clipboard && s.stack) return `<div${c.style.hiddenOnMobile ? ` class="hidden-${c.id}"` : ''} style="display:inline-block;vertical-align:${c.style.vertical};width:100%;max-width:${Math.floor(columnSpace * c.style.width / sum)}px;margin-right:${i < n.children.length - 1 ? gap : 0}px;">${content}</div>`;
+      if (options.clipboard && s.stack) return `<div${c.style.hiddenOnMobile ? ` class="hidden-${c.id}"` : ''} style="display:inline-block;vertical-align:${c.style.vertical};width:100%;max-width:${Math.floor(columnSpace * c.style.width / sum) + gap}px;padding:0 ${gap / 2}px;box-sizing:border-box;">${content}</div>`;
       const between = i && s.distribution === 'between' ? fill(unused / Math.max(1, n.children.length - 1)) : '';
       return `${between}${i && gap ? `<td class="${klass}-gap" width="${gap}" style="width:${gap}px;font-size:0;">&nbsp;</td>` : ''}<td class="${klass}${c.style.hiddenOnMobile ? ` hidden-${c.id}` : ''}" width="${c.style.width / sum * 100}%" valign="${c.style.vertical}" style="vertical-align:${c.style.vertical};">${content}</td>`;
     }).join('');
-    body = options.clipboard && s.stack ? `<div style="font-size:0;text-align:${s.distribution === 'center' ? 'center' : s.distribution === 'end' ? 'right' : 'left'};">${cells}</div>` : table(`<tr>${fill(leading)}${cells}${fill(trailing)}</tr>`);
+    body = options.clipboard && s.stack ? `<div style="font-size:0;margin:0 -${gap / 2}px;text-align:${s.distribution === 'center' ? 'center' : s.distribution === 'end' ? 'right' : s.align};">${cells}</div>` : table(`<tr>${fill(leading)}${cells}${fill(trailing)}</tr>`);
   } else if (n.kind === 'section' || n.kind === 'column') {
     body = table(n.children.map((c, i) => `${i && s.gap ? `<tr><td height="${s.gap}" style="height:${s.gap}px;font-size:0;">&nbsp;</td></tr>` : ''}<tr><td>${renderNode({ ...c, style: { ...c.style, fontFamily: c.style.fontFamily ?? s.fontFamily } }, { ...options, containerWidth: available }, css)}</td></tr>`).join(''));
   } else if (n.kind === 'image') {

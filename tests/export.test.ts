@@ -25,8 +25,8 @@ describe('email pipeline', () => {
     row.style.stack = true;
     doc.nodes = [row];
     const { fragment } = renderEmail(doc, { assets: {}, clipboard: true });
-    expect(fragment).toContain('max-width:308px;margin-right:24px;');
-    expect(fragment).toContain('max-width:308px;margin-right:0px;');
+    expect(fragment).toContain('max-width:332px;padding:0 12px;box-sizing:border-box;');
+    expect(fragment).toContain('margin:0 -12px;');
     expect(fragment).not.toMatch(/<style|@media|display:flex/);
   });
   it('renders local development image exports without accepting arbitrary HTTP image sources', async () => {
