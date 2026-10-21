@@ -2,8 +2,9 @@ import { useRef, useState, type ReactNode } from 'react';
 import { Monitor, Smartphone, GripVertical } from 'lucide-react';
 import type { Translate } from './i18n';
 
-const MIN_WIDTH = 240;
-const MAX_WIDTH = 1200;
+const MIN_WIDTH = 300;
+export const MOBILE_MAX_WIDTH = 600;
+const MAX_WIDTH = 2560;
 const clampWidth = (width: number) => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(width)));
 
 export function PreviewSizeControls({ width, desktopWidth, onChange, t }: {
@@ -12,8 +13,8 @@ export function PreviewSizeControls({ width, desktopWidth, onChange, t }: {
   const [draft, setDraft] = useState<string | null>(null);
   return <div className="preview-size-controls" onClick={e => e.stopPropagation()}>
     <div className="segmented">
-      <button className={width === desktopWidth ? 'active' : ''} aria-label={t('desktop')} onClick={() => { setDraft(null); onChange(desktopWidth); }}><Monitor size={17}/></button>
-      <button className={width === 375 ? 'active' : ''} aria-label={t('mobile')} onClick={() => { setDraft(null); onChange(375); }}><Smartphone size={17}/></button>
+      <button className={width > MOBILE_MAX_WIDTH ? 'active' : ''} aria-pressed={width > MOBILE_MAX_WIDTH} aria-label={t('desktop')} onClick={() => { setDraft(null); onChange(desktopWidth); }}><Monitor size={17}/></button>
+      <button className={width <= MOBILE_MAX_WIDTH ? 'active' : ''} aria-pressed={width <= MOBILE_MAX_WIDTH} aria-label={t('mobile')} onClick={() => { setDraft(null); onChange(375); }}><Smartphone size={17}/></button>
     </div>
     <label className="preview-width-input"><span className="sr-only">{t('previewWidth')}</span><input type="number" min={MIN_WIDTH} max={MAX_WIDTH} value={draft ?? width} onChange={e => {
       setDraft(e.target.value);
