@@ -1,0 +1,34 @@
+name: mail-studio
+services:
+  mail-studio:
+    image: ${MAIL_STUDIO_IMAGE:-mail-studio:0.1.0}
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      PUBLIC_ORIGIN: https://mail-studio.camille.studio
+    expose: ["3000"]
+    networks:
+      web:
+        aliases: [mail-studio]
+      database: {}
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 768m
+    pids_limit: 100
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+networks:
+  web:
+    external: true
+    name: homeserver-web
+  database:
+    external: true
+    name: homeserver-database

@@ -1,0 +1,4 @@
+mail-studio.camille.studio {
+    encode zstd gzip
+    reverse_proxy mail-studio:3000
+}
