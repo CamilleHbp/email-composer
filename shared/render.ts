@@ -41,7 +41,9 @@ export function renderNode(n: EmailNode, options: RenderOptions, css: string[]):
     const klass = `col-${n.id}`;
     if (s.stack && !options.clipboard) css.push(`@media only screen and (max-width:${s.mobileBreakpoint ?? 480}px){.${klass}{display:block!important;width:100%!important;box-sizing:border-box!important}.${klass}-gap{display:none!important}}`);
     const gap = s.gap;
-    const widths = columnWidths(n, available);
+    // Keep both half-gutters inside the row. Negative wrapper margins can be
+    // removed by mail clients, leaving columns wider than their desktop row.
+    const widths = columnWidths(n, available - (options.clipboard && s.stack ? gap : 0));
     const fill = (percent: number) => percent > 0 ? `<td width="${percent}%" style="padding:0;width:${percent}%;font-size:0;">&nbsp;</td>` : '';
     const leading = s.distribution === 'end' ? unused : s.distribution === 'center' ? unused / 2 : 0;
     const trailing = s.distribution === 'start' ? unused : s.distribution === 'center' ? unused / 2 : 0;
@@ -53,7 +55,7 @@ export function renderNode(n: EmailNode, options: RenderOptions, css: string[]):
       const between = i && s.distribution === 'between' ? fill(unused / Math.max(1, n.children.length - 1)) : '';
       return `${between}${i && gap ? `<td class="${klass}-gap" width="${gap}" style="padding:0;width:${gap}px;font-size:0;">&nbsp;</td>` : ''}<td class="${klass}${c.style.hiddenOnMobile ? ` hidden-${c.id}` : ''}" width="${c.style.width / sum * 100}%" valign="${c.style.vertical}" style="padding:0;vertical-align:${c.style.vertical};">${content}</td>`;
     }).join('');
-    body = options.clipboard && s.stack ? `<div style="font-size:0;margin:0 -${gap / 2}px;text-align:${s.distribution === 'center' ? 'center' : s.distribution === 'end' ? 'right' : s.align};">${cells}</div>` : table(`<tr>${fill(leading)}${cells}${fill(trailing)}</tr>`);
+    body = options.clipboard && s.stack ? `<div style="font-size:0;text-align:${s.distribution === 'center' ? 'center' : s.distribution === 'end' ? 'right' : s.align};">${cells}</div>` : table(`<tr>${fill(leading)}${cells}${fill(trailing)}</tr>`);
   } else if (n.kind === 'section' || n.kind === 'column') {
     body = table(n.children.map((c, i) => `${i && s.gap ? `<tr><td height="${s.gap}" style="padding:0;height:${s.gap}px;font-size:0;">&nbsp;</td></tr>` : ''}<tr><td style="padding:0;">${renderNode({ ...c, style: { ...c.style, fontFamily: c.style.fontFamily ?? s.fontFamily } }, { ...options, containerWidth: available }, css)}</td></tr>`).join(''));
   } else if (n.kind === 'image') {

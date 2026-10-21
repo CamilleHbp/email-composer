@@ -237,7 +237,11 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
     const style: CSSProperties = { padding: insetsCss(paddingInsets(s)), margin: s.marginSides ? insetsCss(s.marginSides) : undefined, opacity: s.opacity, fontFamily: s.fontFamily ?? doc.fontFamily, lineHeight: s.lineHeight, minHeight: s.minHeight, backgroundColor: s.background, backgroundImage: s.backgroundImage ? `url("${s.backgroundImage.url}")` : undefined, backgroundSize: s.backgroundImage?.size, backgroundPosition: s.backgroundImage?.position, backgroundRepeat: s.backgroundImage?.repeat, color: s.color, fontSize: s.fontSize, textAlign: s.align, border: `${s.border}px solid ${s.borderColor}`, borderRadius: s.corners ? insetsCss(s.corners) : s.radius };
     if (s.borderSides) for (const [side, b] of Object.entries(s.borderSides)) if (b) Object.assign(style, { [`border${side[0].toUpperCase()}${side.slice(1)}`]: `${b.width}px ${b.style} ${b.color}` });
     const available = contentWidth(s, containerWidth);
-    const widths = n.kind === 'row' ? columnWidths(n, available) : [];
+    const widths = n.kind === 'row' ? columnWidths(n, available - (s.stack ? s.gap : 0)) : [];
+    if (n.kind === 'row' && s.stack) {
+      const padding = paddingInsets(s);
+      style.padding = insetsCss([padding[0], padding[1] + s.gap / 2, padding[2], padding[3] + s.gap / 2]);
+    }
     style.fontFamily = s.fontFamily ?? inheritedFont;
     style.lineHeight = s.lineHeight ?? 1.5;
     if (container) Object.assign(style, { display: 'flex', flexDirection: n.kind === 'row' ? 'row' : 'column', flexWrap: n.kind === 'row' && s.stack ? 'wrap' : undefined, gap: s.gap, rowGap: n.kind === 'row' && s.stack ? 0 : s.gap, alignItems: n.kind === 'row' ? 'flex-start' : undefined, justifyContent: s.distribution === 'between' && !s.stack ? 'space-between' : s.distribution === 'center' || (n.kind === 'row' && s.stack && s.align === 'center') ? 'center' : s.distribution === 'end' || (n.kind === 'row' && s.stack && s.align === 'right') ? 'flex-end' : 'flex-start' });
