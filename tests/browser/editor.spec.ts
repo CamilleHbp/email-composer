@@ -197,7 +197,7 @@ test('recover a stale local copy without overwriting a newer server revision', a
   await page.getByLabel('Name', { exact: true }).fill('Local work worth keeping');
   await expect(page.getByRole('status')).toContainText('Save failed', { timeout: 10000 });
   const response = await page.request.put(`/api/templates/${record.id}`, {
-    data: { ...record, name: 'Newer server work' }, headers: { Origin: 'http://localhost:5173' },
+    data: { ...record, name: 'Newer server work' }, headers: { Origin: new URL(page.url()).origin },
   });
   expect(response.ok()).toBe(true);
   await page.reload();
@@ -237,4 +237,35 @@ test('preview matches the rich HTML copied for pasting into a mail composer', as
   });
   expect(copied.html).toBe(preview);
   expect(copied.text).toContain('A message to paste');
+});
+
+test('imports MySigmail with mixed formatting and keeps it after editing and saving', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('Email address').fill('test@example.test');
+  await page.getByLabel('Password', { exact: true }).fill('test-password-12345');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('button', { name: 'Import template', exact: true }).click();
+  await page.getByLabel('Source format').selectOption('mysigmail');
+  const source = { version: 1, meta: { title: 'Formatted Card' }, editor: { general: { background: { color: '#eeeeee' }, font: 'Georgia', padding: [24, 0, 24, 0], previewText: 'Preview' } }, canvas: { components: [{ version: 1, block: { settings: { backgroundColor: '#fff9e8', spacing: { padding: [34, 32, 34, 32] } }, rows: [{ settings: {}, cells: [{ settings: {}, children: [{ type: 'text', value: '<p><span style="color:#ad2494;font-size:25px"><strong>Mixed heading</strong></span></p><p><a href="https://example.org">Visit us</a></p>' }] }] }] } }] } };
+  await page.route('https://example.org/**', route => route.abort());
+  (source.canvas.components[0].block.rows[0].cells[0].children as unknown[]).push({ type: 'image', src: 'img/poster.png', alt: 'Imported poster' }, { type: 'image', src: 'https://example.org/missing.png', alt: 'Unavailable remote image' });
+  await page.locator('input[type=file]').setInputFiles({ name: 'card.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) });
+  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Formatted Card');
+  await expect(page.locator('.kind-image .image-placeholder')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('Some images could not be found or imported.');
+  const text = page.locator('.editable-text').first();
+  await expect(text.locator('span')).toHaveCSS('color', 'rgb(173, 36, 148)');
+  await expect(text.locator('span')).toHaveCSS('font-size', '25px');
+  await expect(text.locator('a')).toHaveAttribute('href', 'https://example.org');
+  await expect(page.locator('.kind-section').first()).toHaveCSS('padding', '34px 32px');
+  await text.click();
+  await text.press('End');
+  await text.press('!');
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(page.frameLocator('iframe[title="Preview"]').locator('span').filter({ hasText: 'Mixed heading' })).toHaveCSS('font-size', '25px');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('All changes saved');
+  await page.reload();
+  await page.getByRole('button', { name: 'Open Formatted Card', exact: true }).click();
+  await expect(page.locator('.editable-text span')).toHaveCSS('color', 'rgb(173, 36, 148)');
 });

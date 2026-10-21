@@ -10,6 +10,7 @@ import { existsSync } from 'node:fs';
 import type { Config } from './config';
 import type { Database } from './db';
 import type { ObjectStore } from './storage';
+import { importMySigmail } from './mysigmail';
 import { createAuth, issueLink, redeemLink } from './auth';
 import { assets, collections, templates, user } from './schema';
 import { assetIds, validateDocument, type EmailDocument } from '../shared/model';
@@ -32,7 +33,7 @@ export async function createApp(db: Database, store: ObjectStore, config: Config
   await app.register(helmet, { contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"], scriptSrc: ["'self'"], styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'blob:', 'data:', config.ASSET_PUBLIC_BASE_URL],
+      imgSrc: ["'self'", 'blob:', 'data:', 'https:', config.ASSET_PUBLIC_BASE_URL],
       fontSrc: ["'self'"], connectSrc: ["'self'"], frameSrc: ["'self'", 'blob:'],
       objectSrc: ["'none'"], baseUri: ["'none'"], frameAncestors: ["'none'"],
       upgradeInsecureRequests: config.NODE_ENV === 'production' ? [] : null,
@@ -43,7 +44,7 @@ export async function createApp(db: Database, store: ObjectStore, config: Config
   app.setErrorHandler((caught, req, reply) => {
     const error = caught as Error & { statusCode?: number };
     const known = error instanceof z.ZodError || [
-      'invalid_document', 'document_too_deep', 'invalid_move', 'last_column', 'invalid_archive',
+      'invalid_mysigmail', 'mysigmail_too_large', 'invalid_document', 'document_too_deep', 'invalid_move', 'last_column', 'invalid_archive',
       'archive_too_large', 'export_too_large', 'image_too_large', 'invalid_image', 'missing_image', 'invalid_account', 'expired_link', 'not_found',
     ].includes(error.message);
     const status = error.statusCode && error.statusCode < 500 ? error.statusCode : known ? 400 : 503;
@@ -192,8 +193,14 @@ export async function createApp(db: Database, store: ObjectStore, config: Config
       return { html: output.fragment, text: output.text, warnings: output.warnings };
     });
     privateApi.post('/imports', async req => {
-      const file = await req.file();
-      if (!file) throw new Error('invalid_archive');
+      const { source } = z.object({ source: z.enum(['archive', 'mysigmail']).default('archive') }).parse(req.query);
+      const file = await req.file({ limits: { fileSize: source === 'mysigmail' ? 2 * 1024 * 1024 : 50 * 1024 * 1024 } });
+      if (!file) throw new Error(source === 'mysigmail' ? 'invalid_mysigmail' : 'invalid_archive');
+      if (source === 'mysigmail') {
+        const imported = importMySigmail(await file.toBuffer());
+        const [record] = await db.insert(templates).values({ ownerId: req.identity.id, name: imported.name, document: imported.document, kind: 'template' }).returning();
+        return { ...record, importWarnings: imported.importWarnings };
+      }
       const { doc, images } = readArchive(await file.toBuffer());
       const mapping: Record<string, string> = {};
       for (const image of images) mapping[image.oldId] = (await uploadAsset(db, store, req.identity.id, image.data, image.name)).id;

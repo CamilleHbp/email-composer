@@ -1,9 +1,21 @@
 import { z } from 'zod';
+import { cssColorPattern, fontPattern } from './formatting';
 
 export const kinds = ['section', 'row', 'column', 'heading', 'text', 'image', 'button', 'divider', 'spacer'] as const;
 export type Kind = typeof kinds[number];
-const color = z.string().regex(/^#[0-9a-f]{6}$/i);
+const color = z.string().regex(cssColorPattern);
+const insets = z.tuple([z.number().min(0).max(1000), z.number().min(0).max(1000), z.number().min(0).max(1000), z.number().min(0).max(1000)]);
+export const backgroundImageSchema = z.object({ url: z.url().max(2048).refine(v => v.startsWith('https://') && !/[\s"'()<>\\]/.test(v)), repeat: z.enum(['repeat', 'no-repeat']), size: z.enum(['unset', 'cover', 'contain']), position: z.enum(['top', 'center', 'bottom', 'left', 'right']) });
+const borderSide = z.object({ width: z.number().min(0).max(20), style: z.enum(['solid', 'dashed', 'dotted']), color });
 export const styleSchema = z.object({
+  paddingSides: insets.optional(), marginSides: insets.optional(), corners: insets.optional(),
+  fontFamily: z.string().regex(fontPattern).optional(), lineHeight: z.number().min(0.5).max(5).optional(),
+  paragraphSpacing: z.number().min(0).max(100).optional(), hiddenOnMobile: z.boolean().optional(),
+  opacity: z.number().min(0).max(1).optional(), backgroundImage: backgroundImageSchema.optional(),
+  borderSides: z.object({ top: borderSide.optional(), right: borderSide.optional(), bottom: borderSide.optional(), left: borderSide.optional() }).optional(),
+  imageWidth: z.number().min(1).max(2000).optional(), imageHeight: z.number().min(1).max(2000).optional(),
+  dividerHeight: z.number().min(0).max(20).optional(), minHeight: z.number().min(0).max(2000).optional(),
+  hug: z.boolean().optional(), mobileBreakpoint: z.number().min(320).max(1000).optional(),
   padding: z.number().min(0).max(100).default(16),
   gap: z.number().min(0).max(80).default(16),
   background: color.default('#ffffff'),
@@ -26,6 +38,8 @@ export interface EmailNode {
   text: string;
   href: string;
   assetId?: string;
+  remoteSrc?: string;
+  rich?: boolean;
   alt: string;
   style: NodeStyle;
   children: EmailNode[];
@@ -33,15 +47,20 @@ export interface EmailNode {
 export const nodeSchema: z.ZodType<EmailNode> = z.lazy(() => z.object({
   id: z.string().uuid(),
   kind: z.enum(kinds),
+  rich: z.boolean().optional(),
   text: z.string().max(50000),
   href: z.string().max(2048).refine(v => !v || /^(https?:\/\/|mailto:|tel:)/i.test(v), 'unsafe_link'),
   assetId: z.string().uuid().optional(),
+  remoteSrc: z.url().max(2048).refine(v => v.startsWith('https://'), 'unsafe_image').optional(),
   alt: z.string().max(500),
   style: styleSchema,
   children: z.array(nodeSchema).max(100),
 }));
 export const documentSchema = z.object({
   version: z.literal(1),
+  paddingSides: insets.optional(),
+  fontFamily: z.string().regex(fontPattern).optional(),
+  backgroundImage: backgroundImageSchema.optional(),
   subject: z.string().max(200),
   preheader: z.string().max(300),
   width: z.number().int().min(320).max(1000),
@@ -138,6 +157,7 @@ export function assetIds(doc: EmailDocument): string[] {
 }
 export type TemplateKind = 'draft' | 'template' | 'section';
 export interface TemplateRecord {
+  importWarnings?: string[];
   id: string; name: string; kind: TemplateKind; document: EmailDocument;
   revision: number; shared: boolean; collectionId: string | null; updatedAt: string;
 }

@@ -56,13 +56,25 @@ browser origin exactly. Do not commit `.env` or put storage keys in Vite variabl
 - **HTML** exports use permanent public image URLs.
 - **Embedded email** exports a MIME `.eml` file with CID image attachments without
   publishing the images. Opening it as an editable draft depends on the mail app.
-- **Template archive** exports JSON and assets in a portable ZIP for re-import.
+- **Template archive** exports JSON and uploaded assets in a portable ZIP for re-import.
+- **Import template → MySigmail Card JSON** imports version 1 exports (up to 2 MB)
+  as new editable templates. Sections, nested rows, columns, formatted text and
+  links, images, buttons, dividers, spacing, colours, fonts, borders, backgrounds
+  and mobile visibility are preserved. Unsupported versions or block types are
+  rejected without creating a template. Missing, relative or unsupported image
+  sources do not block import: image blocks become placeholders and a warning
+  is shown. Unavailable backgrounds are omitted with the same warning.
+  HTTPS images and backgrounds remain
+  external references in all exports, including EML and ZIP; upload replacement
+  images to embed them. Remote images are never downloaded by the server.
+  Email clients may vary in support for fonts, background images and mobile CSS.
 
 Uploads support PNG, JPEG, WebP and GIF up to 10 MB. Images are normalized to PNG,
 metadata is removed, and dimensions are limited to 2400 pixels. Animated uploads
 use their first frame. Nested layouts allow up to eight levels and 500 blocks.
-Rich text supports bold, italics, underline and line breaks. Links are configured
-on buttons and images.
+Rich text supports bold, italics, underline and line breaks. Imported formatted
+text also preserves inline colours, sizes, fonts, paragraphs and links. Advanced
+formatting controls expose per-side spacing, corners, opacity and mobile visibility.
 
 Embedded email and archive exports allow up to 100 images and 40 MB of image
 data. Hosted HTML and clipboard exports use image URLs instead of embedding the

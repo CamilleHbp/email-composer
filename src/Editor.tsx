@@ -5,6 +5,7 @@ import { Dialog, Field, ErrorNotice, ImageLibrary } from './components';
 import type { Translate } from './i18n';
 import { assetIds, cloneNode, deleteNode, isContainer, kinds, locate, moveNode, node, validateDocument, walk, type EmailDocument, type EmailNode, type Kind, type TemplateRecord } from '../shared/model';
 import { plainText, renderEmail, richText } from '../shared/render';
+import { formattedText, insetsCss, paddingInsets } from '../shared/formatting';
 
 type Props = {
   record: TemplateRecord; collections: { id: string; name: string }[]; sections: TemplateRecord[];
@@ -27,6 +28,8 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
   const [dropPreview, setDropPreview] = useState<{ parent: string | null; left: number; top: number; width: number; height: number } | null>(null);
   const dragSource = useRef<{ id: string; kind: Kind } | null>(null);
   const [preview, setPreview] = useState('');
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const [imageWarningDismissed, setImageWarningDismissed] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [status, setStatus] = useState<'saved' | 'saving' | 'unsaved' | 'offline' | 'conflict'>('saved');
@@ -227,28 +230,34 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
   function canvasNode(n: EmailNode) {
     const s = n.style;
     const container = isContainer(n);
-    const style: CSSProperties = { padding: s.padding, background: s.background, color: s.color, fontSize: s.fontSize, textAlign: s.align, border: `${s.border}px solid ${s.borderColor}`, borderRadius: s.radius };
+    const style: CSSProperties = { padding: insetsCss(paddingInsets(s)), margin: s.marginSides ? insetsCss(s.marginSides) : undefined, opacity: s.opacity, fontFamily: s.fontFamily ?? doc.fontFamily, lineHeight: s.lineHeight, minHeight: s.minHeight, backgroundColor: s.background, backgroundImage: s.backgroundImage ? `url("${s.backgroundImage.url}")` : undefined, backgroundSize: s.backgroundImage?.size, backgroundPosition: s.backgroundImage?.position, backgroundRepeat: s.backgroundImage?.repeat, color: s.color, fontSize: s.fontSize, textAlign: s.align, border: `${s.border}px solid ${s.borderColor}`, borderRadius: s.corners ? insetsCss(s.corners) : s.radius };
+    if (s.borderSides) for (const [side, b] of Object.entries(s.borderSides)) if (b) Object.assign(style, { [`border${side[0].toUpperCase()}${side.slice(1)}`]: `${b.width}px ${b.style} ${b.color}` });
     if (container) Object.assign(style, { display: 'flex', flexDirection: n.kind === 'row' ? (mobile && s.stack ? 'column' : 'row') : 'column', gap: s.gap, alignItems: n.kind === 'row' ? (s.vertical === 'middle' ? 'center' : s.vertical === 'bottom' ? 'flex-end' : 'stretch') : undefined, justifyContent: s.distribution === 'between' ? 'space-between' : s.distribution === 'center' ? 'center' : s.distribution === 'end' ? 'flex-end' : 'flex-start' });
+    if (mobile && s.hiddenOnMobile) style.display = 'none';
     if (n.kind === 'column') Object.assign(style, { flex: `${s.width} 1 0`, minWidth: 0 });
     return <div key={n.id} data-node-id={n.id} className={`canvas-node ${container ? 'container-node' : ''} ${selection === n.id ? 'selected' : ''} ${dropPreview?.parent === n.id ? 'drop-container' : ''} kind-${n.kind}`} style={style} onClick={e => { e.stopPropagation(); setSelection(n.id); }}>
       <button className="node-handle" draggable onDragStart={e => { e.dataTransfer.setData('application/mail-studio-node', n.id); }} aria-label={`${t('moveTo')} ${t(n.kind)}`} onClick={() => setSelection(n.id)}><GripVertical size={13}/>{t(n.kind)}</button>
       {container ? (n.children.length ? n.children.map((child, i) => n.kind === 'row' ? canvasNode(child) : <div className="canvas-slot" key={child.id}>{dropZone(n.id, i)}{canvasNode(child)}</div>) : <div className="empty-container">{t('dropHere')}<button className="icon-button" aria-label={t('addBlock')} onClick={e => { e.stopPropagation(); add('text', n.id); }}><Plus size={18}/></button></div>) :
-        n.kind === 'image' ? (n.assetId ? <img draggable={false} src={`/api/assets/${n.assetId}/content`} alt={n.alt} style={{ width: `${s.width}%`, maxWidth: '100%', display: 'block', margin: s.align === 'center' ? '0 auto' : s.align === 'right' ? '0 0 0 auto' : 0 }}/> : <button className="image-placeholder" onClick={() => setModal('images')}><Image size={25}/>{t('chooseImage')}</button>) :
-        n.kind === 'divider' ? <hr style={{ borderColor: s.borderColor }}/> :
+        n.kind === 'image' ? (n.assetId || n.remoteSrc ? <img draggable={false} onError={() => setImageLoadFailed(true)} src={n.assetId ? `/api/assets/${n.assetId}/content` : n.remoteSrc} alt={n.alt} style={{ width: s.imageWidth ?? `${s.width}%`, height: s.imageHeight ?? 'auto', borderRadius: s.corners ? insetsCss(s.corners) : s.radius, maxWidth: '100%', display: 'block', margin: s.align === 'center' ? '0 auto' : s.align === 'right' ? '0 0 0 auto' : 0 }}/> : <button className="image-placeholder" onClick={() => setModal('images')}><Image size={25}/>{t('chooseImage')}</button>) :
+        n.kind === 'divider' ? <hr style={{ border: 0, borderTop: `${s.dividerHeight ?? 1}px solid ${s.borderColor}` }}/> :
         n.kind === 'spacer' ? <div style={{ height: s.height }}/> :
         <div className={`editable-text ${n.kind}`} contentEditable suppressContentEditableWarning role="textbox" aria-label={t(n.kind)} onBlur={e => {
-          // Only a small rich-text vocabulary is accepted; browser pasted markup becomes text.
-          const text = e.currentTarget.innerText;
-          if (text !== plainText(n.text)) change(n.id, item => { item.text = text; });
-        }} onPaste={e => { e.preventDefault(); const text = e.clipboardData.getData('text/plain'); document.execCommand('insertText', false, text); }} dangerouslySetInnerHTML={{ __html: richText(n.text) }}/>}
+          if (n.rich) {
+            const html = formattedText(e.currentTarget.innerHTML, s.paragraphSpacing, false);
+            if (html !== formattedText(n.text, s.paragraphSpacing, false)) change(n.id, item => { item.text = html; });
+          } else {
+            const text = e.currentTarget.innerText;
+            if (text !== plainText(n.text)) change(n.id, item => { item.text = text; });
+          }
+        }} onPaste={e => { e.preventDefault(); const text = e.clipboardData.getData('text/plain'); document.execCommand('insertText', false, text); }} dangerouslySetInnerHTML={{ __html: richText(n.text, n.rich, s.paragraphSpacing) }}/>}
       {container && n.kind !== 'row' && dropZone(n.id, n.children.length)}
     </div>;
   }
   function layer(n: EmailNode, depth = 0): React.ReactNode {
     const Icon = icons[n.kind];
-    return <div key={n.id}><button className={selection === n.id ? 'layer active' : 'layer'} style={{ paddingLeft: 12 + depth * 12 }} onClick={() => setSelection(n.id)} draggable onDragStart={e => e.dataTransfer.setData('application/mail-studio-node', n.id)} onDragOver={e => { if (isContainer(n)) e.preventDefault(); }} onDrop={e => { if (isContainer(n)) drop(e, n.id, n.children.length); }}><Icon size={15}/><span>{n.text ? plainText(n.text).slice(0, 28) : t(n.kind)}</span></button>{n.children.map(c => layer(c, depth + 1))}</div>;
+    return <div key={n.id}><button className={selection === n.id ? 'layer active' : 'layer'} style={{ paddingLeft: 12 + depth * 12 }} onClick={() => setSelection(n.id)} draggable onDragStart={e => e.dataTransfer.setData('application/mail-studio-node', n.id)} onDragOver={e => { if (isContainer(n)) e.preventDefault(); }} onDrop={e => { if (isContainer(n)) drop(e, n.id, n.children.length); }}><Icon size={15}/><span>{n.text ? plainText(n.text, n.rich).slice(0, 28) : t(n.kind)}</span></button>{n.children.map(c => layer(c, depth + 1))}</div>;
   }
-  const styleNumber = (key: 'padding' | 'gap' | 'fontSize' | 'width' | 'height' | 'border' | 'radius', min: number, max: number) => selected && <Field key={key} label={t(key)}><div className="number-field"><input type="number" min={min} max={max} value={selected.style[key]} onChange={e => change(selected.id, n => { n.style[key] = Math.max(min, Math.min(max, Number(e.target.value))); })}/><span>{key === 'width' ? '%' : 'px'}</span></div></Field>;
+  const styleNumber = (key: 'padding' | 'gap' | 'fontSize' | 'width' | 'height' | 'border' | 'radius', min: number, max: number) => selected && <Field key={key} label={t(key)}><div className="number-field"><input type="number" min={min} max={max} value={selected.style[key]} onChange={e => change(selected.id, n => { n.style[key] = Math.max(min, Math.min(max, Number(e.target.value))); if (key === 'padding') delete n.style.paddingSides; if (key === 'radius') delete n.style.corners; if (key === 'width' && n.kind === 'image') delete n.style.imageWidth; if (key === 'border') delete n.style.borderSides; })}/><span>{key === 'width' ? '%' : 'px'}</span></div></Field>;
   const styleColor = (key: 'color' | 'background' | 'borderColor') => selected && <Field key={key} label={t(key)}><div className="color-field"><input aria-label={t(key)} type="color" value={selected.style[key]} onChange={e => change(selected.id, n => { n.style[key] = e.target.value; })}/><span>{selected.style[key]}</span></div></Field>;
   const selectStyle = (key: 'align' | 'vertical' | 'distribution', options: string[]) => selected && <Field label={t(key)}><select value={selected.style[key]} onChange={e => change(selected.id, n => { (n.style as unknown as Record<string, unknown>)[key] = e.target.value; })}>{options.map(o => <option value={o} key={o}>{t(o)}</option>)}</select></Field>;
   return <div className="editor-shell" onDragStart={e => {
@@ -260,6 +269,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
       <div className="editor-actions"><button className="icon-button" aria-label={t('undo')} disabled={!past.length} onClick={undo}><Undo2 size={18}/></button><button className="icon-button" aria-label={t('redo')} disabled={!future.length} onClick={redo}><Redo2 size={18}/></button><span className="separator"/><button aria-label={t('preview')} onClick={() => setModal('preview')}><Eye size={17}/><span>{t('preview')}</span></button><button className="primary" aria-label={t('export')} onClick={() => setModal('export')}><span>{t('export')}</span><ArrowUpRight size={17}/></button></div>
     </header>
     {(error || recovery || status === 'conflict' || status === 'offline') && <div className="editor-notices"><ErrorNotice error={error} t={t}/>{recovery && <div className="notice">{t('recovery')}<button onClick={() => { conflicted.current = recovery.revision !== record.revision; revision.current = recovery.revision; setDoc(recovery.document); setName(recovery.name); setKind(recovery.kind); setCollection(recovery.collectionId); setRecovery(null); }}>{t('restore')}</button><button onClick={() => { localStorage.removeItem(`mail-studio-recovery:${record.id}`); setRecovery(null); }}>{t('discard')}</button></div>}{status === 'offline' && <button onClick={() => void save()}>{t('retry')}</button>}{status === 'conflict' && <button onClick={() => void run(async () => { const r = await api<TemplateRecord>('/templates', { method: 'POST', body: JSON.stringify(current.current) }); onSave(r); localStorage.removeItem(`mail-studio-recovery:${record.id}`); onClose(); })}>{t('saveCopy')}</button>}</div>}
+    {(!imageWarningDismissed && (imageLoadFailed || record.importWarnings?.length)) && <div className="editor-notices"><p className="notice" role="alert">{t('mysigmail_images_unavailable')} <button onClick={() => setImageWarningDismissed(true)}>{t('dismissWarning')}</button></p></div>}
     <div className="editor-body">
       <aside className="palette"><div className="tabs">{(['blocks', 'layers', 'sections'] as const).map(key => <button key={key} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>{t(key)}</button>)}</div>
       {tab === 'blocks' && <><p className="palette-hint">{t('blocksHint')}</p><div className="block-grid">{kinds.filter(k => k !== 'column').map(k => { const Icon = icons[k]; return <button key={k} draggable onDragStart={e => e.dataTransfer.setData('application/mail-studio-kind', k)} onClick={() => add(k)}><Icon size={23}/><span>{t(k)}</span></button>; })}</div></>}
@@ -273,7 +283,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
       </aside>
       <main className="workspace" onClick={() => setSelection(null)}>
         <div className="canvas-toolbar"><div className="segmented"><button className={!mobile ? 'active' : ''} aria-label={t('desktop')} onClick={() => setMobile(false)}><Monitor size={17}/></button><button className={mobile ? 'active' : ''} aria-label={t('mobile')} onClick={() => setMobile(true)}><Smartphone size={17}/></button></div><span>{mobile ? 375 : doc.width} px</span></div>
-        <div className="email-canvas" style={{ width: mobile ? 375 : doc.width, background: doc.background }} onDragOver={e => {
+        <div className="email-canvas" style={{ width: mobile ? 375 : doc.width, backgroundColor: doc.background, padding: doc.paddingSides ? insetsCss(doc.paddingSides) : undefined, fontFamily: doc.fontFamily, backgroundImage: doc.backgroundImage ? `url("${doc.backgroundImage.url}")` : undefined, backgroundRepeat: doc.backgroundImage?.repeat, backgroundSize: doc.backgroundImage?.size, backgroundPosition: doc.backgroundImage?.position }} onDragOver={e => {
           const destination = canvasDestination(e);
           e.preventDefault(); e.stopPropagation();
           e.dataTransfer.dropEffect = destination ? (dragSource.current?.id ? 'move' : 'copy') : 'none';
@@ -297,7 +307,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
             setNotice('saved');
           })}><Save size={16}/></button></div>
           <div className="breadcrumbs"><button onClick={() => setSelection(null)}>{t('document')}</button><span>/</span><span>{t(selected.kind)}</span></div>
-          {['text', 'heading', 'button'].includes(selected.kind) && <><Field label={t('content')}><textarea ref={textInput} rows={5} value={selected.text} onChange={e => change(selected.id, n => { n.text = e.target.value; })}/></Field><div className="format-controls">{(['strong', 'em', 'u'] as const).map((tag, i) => <button key={tag} title={t(['bold', 'italic', 'underline'][i])} onClick={() => { const area = textInput.current; if (!area) return; const a = area.selectionStart, b = area.selectionEnd; change(selected.id, n => { n.text = `${n.text.slice(0, a)}<${tag}>${n.text.slice(a, b)}</${tag}>${n.text.slice(b)}`; }); }}><span style={{ fontWeight: i === 0 ? 700 : undefined, fontStyle: i === 1 ? 'italic' : undefined, textDecoration: i === 2 ? 'underline' : undefined }}>{t(['bold', 'italic', 'underline'][i])}</span></button>)}</div></>}
+          {['text', 'heading', 'button'].includes(selected.kind) && <><Field label={t(selected.rich ? 'formattedContent' : 'content')}><textarea ref={textInput} rows={5} value={selected.text} onChange={e => change(selected.id, n => { n.text = e.target.value; })}/></Field><div className="format-controls">{(['strong', 'em', 'u'] as const).map((tag, i) => <button key={tag} title={t(['bold', 'italic', 'underline'][i])} onClick={() => { const area = textInput.current; if (!area) return; const a = area.selectionStart, b = area.selectionEnd; change(selected.id, n => { n.text = `${n.text.slice(0, a)}<${tag}>${n.text.slice(a, b)}</${tag}>${n.text.slice(b)}`; }); }}><span style={{ fontWeight: i === 0 ? 700 : undefined, fontStyle: i === 1 ? 'italic' : undefined, textDecoration: i === 2 ? 'underline' : undefined }}>{t(['bold', 'italic', 'underline'][i])}</span></button>)}</div></>}
           {['image', 'button'].includes(selected.kind) && <LinkField key={selected.id} label={t('link')} value={selected.href} apply={href => change(selected.id, n => { n.href = href; })}/>}
           {selected.kind === 'image' && <><button onClick={() => setModal('images')}><Image size={16}/>{t('chooseImage')}</button><Field label={t('alt')}><input value={selected.alt} onChange={e => change(selected.id, n => { n.alt = e.target.value; })}/></Field>{styleNumber('width', 5, 100)}</>}
           {selected.kind === 'row' && <><button onClick={() => add('column', selected.id)}><Plus size={15}/>{t('addColumn')}</button><label className="checkbox"><input type="checkbox" checked={selected.style.stack} onChange={e => change(selected.id, n => { n.style.stack = e.target.checked; })}/>{t('stack')}</label>{selectStyle('distribution', ['start', 'center', 'end', 'between'])}</>}
@@ -305,6 +315,15 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
           {selectStyle('align', ['left', 'center', 'right'])}{isContainer(selected) && selectStyle('vertical', ['top', 'middle', 'bottom'])}
           <div className="field-grid">{styleNumber('padding', 0, 100)}{isContainer(selected) ? styleNumber('gap', 0, 80) : selected.kind === 'spacer' ? styleNumber('height', 0, 400) : styleNumber('fontSize', 10, 72)}{styleNumber('border', 0, 8)}{styleNumber('radius', 0, 40)}</div>
           {styleColor('background')}{styleColor('color')}{styleColor('borderColor')}
+          <details><summary>{t('advancedFormatting')}</summary>
+            <Field label={t('fontFamily')}><input value={selected.style.fontFamily ?? doc.fontFamily ?? 'Arial'} maxLength={200} onChange={e => { if (/^[\w\s,'"-]{1,200}$/.test(e.target.value)) change(selected.id, n => { n.style.fontFamily = e.target.value; }); }}/></Field>
+            <Field label={t('paragraphSpacing')}><input type="number" min={0} max={100} value={selected.style.paragraphSpacing ?? 16} onChange={e => change(selected.id, n => { n.style.paragraphSpacing = Math.max(0, Math.min(100, Number(e.target.value))); })}/></Field>
+            {(['paddingSides', 'marginSides', 'corners'] as const).map(key => <fieldset key={key}><legend>{t(key)}</legend><div className="field-grid">{[0, 1, 2, 3].map(i => <Field key={i} label={t(key === 'corners' ? ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'][i] : ['top', 'right', 'bottom', 'left'][i])}><input type="number" min={0} max={1000} value={(selected.style[key] ?? (key === 'paddingSides' ? paddingInsets(selected.style) : key === 'corners' ? Array(4).fill(selected.style.radius) : [0, 0, 0, 0]))[i]} onChange={e => change(selected.id, n => { const values = [...(n.style[key] ?? (key === 'paddingSides' ? paddingInsets(n.style) : key === 'corners' ? Array(4).fill(n.style.radius) : [0, 0, 0, 0]))] as [number, number, number, number]; values[i] = Math.max(0, Math.min(1000, Number(e.target.value))); n.style[key] = values; })}/></Field>)}</div></fieldset>)}
+            <label className="checkbox"><input type="checkbox" checked={selected.style.background === 'transparent'} onChange={e => change(selected.id, n => { n.style.background = e.target.checked ? 'transparent' : '#ffffff'; })}/>{t('transparentBackground')}</label>
+            <label className="checkbox"><input type="checkbox" checked={selected.style.hiddenOnMobile ?? false} onChange={e => change(selected.id, n => { n.style.hiddenOnMobile = e.target.checked; })}/>{t('hiddenOnMobile')}</label>
+            <Field label={t('opacity')}><input type="range" min={0} max={1} step={0.05} value={selected.style.opacity ?? 1} onChange={e => change(selected.id, n => { n.style.opacity = Number(e.target.value); })}/></Field>
+            {selected.kind === 'image' && <Field label={t('imagePixelWidth')}><input type="number" min={1} max={2000} value={selected.style.imageWidth ?? ''} onChange={e => change(selected.id, n => { n.style.imageWidth = e.target.value ? Math.max(1, Math.min(2000, Number(e.target.value))) : undefined; })}/></Field>}
+          </details>
           <Field label={t('moveTo')}><select value="" onChange={e => { if (e.target.value) { try { const id = e.target.value === 'root' ? null : e.target.value; const target = id ? walk(doc.nodes).find(n => n.id === id)!.children : doc.nodes; commit(moveNode(doc, selected.id, id, target.length)); } catch (e) { setError((e as Error).message); } } }}><option value="">{t('moveTo')}</option>{selected.kind !== 'column' && <option value="root">{t('root')}</option>}{walk(doc.nodes).filter(n => isContainer(n) && !walk([selected]).some(c => c.id === n.id) && (selected.kind === 'column' ? n.kind === 'row' : n.kind !== 'row')).map((n, i) => <option key={n.id} value={n.id}>{t(n.kind)} {i + 1}</option>)}</select></Field>
         </> : <>
           <Field label={t('subject')}><input value={doc.subject} maxLength={200} onChange={e => commit({ ...doc, subject: e.target.value })}/></Field>
@@ -319,7 +338,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
     </div>
     {notice && <div className="toast" role="status" onClick={() => setNotice('')}>{t(notice)}</div>}
     {modal && <Dialog t={t} title={t(modal === 'images' ? 'assets' : modal)} wide close={() => { if (!busy) { setModal(null); setManual(''); } }}>
-      {modal === 'images' ? <ImageLibrary t={t} notify={setError} select={id => { if (selected?.kind === 'image') change(selected.id, n => { n.assetId = id; }); setModal(null); }}/> : <>
+      {modal === 'images' ? <ImageLibrary t={t} notify={setError} select={id => { if (selected?.kind === 'image') change(selected.id, n => { n.assetId = id; delete n.remoteSrc; }); setModal(null); }}/> : <>
         <div className="preview-toolbar"><strong>{t('clipboardPreview')}</strong><button onClick={() => setMobile(!mobile)}>{mobile ? <Smartphone size={18}/> : <Monitor size={18}/>} {t(mobile ? 'mobile' : 'desktop')}</button></div>
         <p className="muted">{t('previewHint')}</p>
         {warnings.map(w => <p key={w} className="notice">{t(w)}</p>)}

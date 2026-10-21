@@ -46,6 +46,25 @@ describe('authenticated API with PostgreSQL', () => {
     expect(other.statusCode).toBe(409);
     expect((await app.inject({ method: 'POST', url: '/api/admin/links', headers: { cookie: bobCookie, origin }, payload: { email: 'e@example.test', purpose: 'invite' } })).statusCode).toBe(403);
   });
+  it('imports MySigmail multipart JSON as a private template and rejects malformed input', async () => {
+    const payload = { version: 1, meta: { title: 'Card import' }, editor: { general: { background: { color: '#ffffff' }, previewText: 'Hello' } }, canvas: { components: [] } };
+    const upload = (data: string, session = cookie, source = 'mysigmail') => app.inject({
+      method: 'POST', url: `/api/imports?source=${source}`, headers: { origin, cookie: session, 'content-type': 'multipart/form-data; boundary=card-test' },
+      payload: `--card-test\r\nContent-Disposition: form-data; name="file"; filename="card.json"\r\nContent-Type: application/json\r\n\r\n${data}\r\n--card-test--\r\n`,
+    });
+    const response = await upload(JSON.stringify(payload));
+    expect(response.statusCode, response.body).toBe(200);
+    expect(response.json()).toMatchObject({ name: 'Card import', kind: 'template', ownerId: alice, importWarnings: [] });
+    const missing = await upload(JSON.stringify({ ...payload, canvas: { components: [{ version: 1, block: { settings: {}, rows: [{ settings: {}, cells: [{ settings: {}, children: [{ type: 'image', src: 'missing.jpg', alt: 'Missing photo' }] }] }] } }] } }));
+    expect(missing.statusCode, missing.body).toBe(200);
+    expect(missing.json().importWarnings).toEqual(['mysigmail_images_unavailable']);
+    const other = await app.inject({ url: '/api/templates', headers: { cookie: bobCookie } });
+    expect(other.json().some((r: { id: string }) => r.id === response.json().id)).toBe(false);
+    expect((await upload('{')).statusCode).toBe(400);
+    expect((await upload('{}')).json().error).toBe('invalid_mysigmail');
+    expect((await upload(JSON.stringify(payload), '')).statusCode).toBe(401);
+    expect((await upload('{}', cookie, 'unknown')).statusCode).toBe(400);
+  });
   it('accepts invitation once, rejects expiry, and supports password recovery', async () => {
     const token = await issueLink(database.db, 'new@example.test', 'invite');
     await redeemLink(database.db, token, 'New', 'very-safe-password');

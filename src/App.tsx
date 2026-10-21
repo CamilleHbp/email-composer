@@ -21,8 +21,9 @@ export function App() {
   const [active, setActive] = useState<TemplateRecord | null>(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const [modal, setModal] = useState<'settings' | 'admin' | 'collection' | null>(null);
+  const [modal, setModal] = useState<'settings' | 'admin' | 'collection' | 'import' | null>(null);
   const [busy, setBusy] = useState(false);
+  const [importSource, setImportSource] = useState<'archive' | 'mysigmail'>('archive');
   const fileInput = useRef<HTMLInputElement>(null);
   const token = new URLSearchParams(location.search).get('token');
   const [redeeming, setRedeeming] = useState(!!token);
@@ -82,10 +83,10 @@ export function App() {
       <div className="sidebar-bottom">{identity.role === 'admin' && <button className="nav-item" onClick={() => setModal('admin')}><Users size={18}/>{t('admin')}</button>}
       <button className="nav-item" onClick={() => setModal('settings')}><Settings size={18}/>{t('settings')}</button><div className="user-row"><span className="avatar">{identity.name[0]?.toUpperCase()}</span><span>{identity.name}</span><button className="icon-button" aria-label={t('signOut')} onClick={() => void action(async () => { await api('/auth/sign-out', { method: 'POST', body: '{}' }); setIdentity(null); })}><LogOut size={17}/></button></div></div>
     </aside>
-    <main className="library-main"><header className="library-top"><span>{t(isAsset ? 'assets' : 'library')}</span><div><button disabled={busy} onClick={() => fileInput.current?.click()}><Upload size={16}/>{t('import')}</button><button className="primary" disabled={busy} onClick={() => void action(async () => {
+    <main className="library-main"><header className="library-top"><span>{t(isAsset ? 'assets' : 'library')}</span><div><button disabled={busy} onClick={() => setModal('import')}><Upload size={16}/>{t('import')}</button><button className="primary" disabled={busy} onClick={() => void action(async () => {
       const r = await api<TemplateRecord>('/templates', { method: 'POST', body: JSON.stringify({ name: t('designName'), kind: 'draft', document: starter('blank', lang) }) }); updated(r); setActive(r);
     })}><Plus size={17}/>{t('newDesign')}</button></div></header>
-      <input ref={fileInput} type="file" accept=".zip" hidden onChange={e => { const f = e.target.files?.[0]; if (f) void action(async () => { const form = new FormData(); form.append('file', f); const r = await api<TemplateRecord>('/imports', { method: 'POST', body: form }); updated(r); setActive(r); }); e.target.value = ''; }}/>
+      <input ref={fileInput} type="file" accept={importSource === 'mysigmail' ? '.json,application/json' : '.zip'} hidden onChange={e => { const f = e.target.files?.[0]; if (f) void action(async () => { const form = new FormData(); form.append('file', f); const r = await api<TemplateRecord>(`/imports?source=${importSource}`, { method: 'POST', body: form }); updated(r); setModal(null); setActive(r); }); e.target.value = ''; }}/>
       <ErrorNotice error={error} t={t}/>
       {isAsset ? <><h1>{t('assets')}</h1><ImageLibrary t={t} notify={setError}/></> : <>
       <div className="library-intro"><h1>{t('libraryTitle')}</h1><p>{t('libraryDescription')}</p></div>
@@ -104,6 +105,7 @@ export function App() {
     </main>
     {notice && <div role="status" className="toast">{t(notice)}</div>}
     {modal && <Dialog title={t(modal === 'collection' ? 'newCollection' : modal)} close={() => { setModal(null); setAccessLink(''); }} t={t}>
+      {modal === 'import' && <><Field label={t('importSource')}><select value={importSource} disabled={busy} onChange={e => setImportSource(e.target.value as typeof importSource)}><option value="archive">{t('archiveSource')}</option><option value="mysigmail">{t('mysigmailSource')}</option></select></Field>{importSource === 'mysigmail' && <><p className="notice">{t('mysigmailHint')}</p></>}<button className="primary" disabled={busy} onClick={() => fileInput.current?.click()}>{t(busy ? 'busy' : 'chooseImportFile')}</button></>}
       {modal === 'settings' && language}
       {modal === 'collection' && <form onSubmit={e => { e.preventDefault(); const name = new FormData(e.currentTarget).get('name'); void action(async () => { await api('/collections', { method: 'POST', body: JSON.stringify({ name }) }); await load(); setModal(null); }); }}><Field label={t('name')}><input name="name" required autoFocus maxLength={100}/></Field><button className="primary" disabled={busy}>{t('save')}</button></form>}
       {modal === 'admin' && <form onSubmit={e => { e.preventDefault(); const data = new FormData(e.currentTarget); void action(async () => { const r = await api<{ url: string }>('/admin/links', { method: 'POST', body: JSON.stringify({ email: data.get('email'), purpose: data.get('purpose') }) }); setAccessLink(r.url); }); }}>
