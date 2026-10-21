@@ -17,6 +17,34 @@ describe('document operations', () => {
     row.children.pop();
     expect(() => deleteNode(doc, row.children[0].id)).toThrow('last_column');
   });
+  it.each([false, true])('moves a last column and removes its empty row (nested: %s)', nested => {
+    const doc = blank(); const source = node('row'); const target = node('row');
+    source.children = [source.children[0]];
+    source.children[0].children = [node('text', 'Keep all content')];
+    if (nested) doc.nodes[0].children = [source, target];
+    else doc.nodes = [source, target];
+    const column = source.children[0];
+    const moved = moveNode(doc, column.id, target.id, 1);
+    expect(walk(moved.nodes).some(n => n.id === source.id)).toBe(false);
+    expect(walk(moved.nodes).find(n => n.id === target.id)?.children.map(n => n.id))
+      .toEqual([target.children[0].id, column.id, target.children[1].id]);
+    expect(walk(moved.nodes).find(n => n.id === column.id)).toEqual(column);
+    expect(source.children).toEqual([column]);
+    expect(validateDocument(moved)).toEqual(moved);
+  });
+  it('keeps a nonempty source row and allows reordering its last column', () => {
+    const doc = blank(); const source = node('row'); const target = node('row');
+    doc.nodes = [source, target];
+    const moved = moveNode(doc, source.children[0].id, target.id, 0);
+    expect(moved.nodes[0].children).toEqual([source.children[1]]);
+    expect(moveNode(moved, source.children[1].id, source.id, 1)).toEqual(moved);
+  });
+  it('rejects moving a last column into a row inside itself', () => {
+    const doc = blank(); const source = node('row'); const nested = node('row');
+    source.children = [source.children[0]];
+    source.children[0].children = [nested]; doc.nodes = [source];
+    expect(() => moveNode(doc, source.children[0].id, nested.id, 0)).toThrow('invalid_move');
+  });
   it('preserves content when removing a populated column', () => {
     const doc = blank(); const row = node('row'); row.children[0].children = [node('text', 'Important')]; doc.nodes[0].children = [row];
     expect(walk(deleteNode(doc, row.children[0].id).nodes).find(n => n.kind === 'text')?.text).toBe('Important');

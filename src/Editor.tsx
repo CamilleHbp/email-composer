@@ -164,8 +164,8 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
     if (!source) return null;
     const canvas = e.currentTarget;
     const element = e.target as HTMLElement;
-    const zone = element.closest<HTMLElement>('[data-drop-index]');
-    const block = element.closest<HTMLElement>('[data-node-id]');
+    const zone = source.kind === 'column' ? null : element.closest<HTMLElement>('[data-drop-index]');
+    const block = element.closest<HTMLElement>(source.kind === 'column' ? '.kind-column, .kind-row' : '[data-node-id]');
     let parent: string | null = null;
     let index = doc.nodes.length;
     if (zone) {
@@ -178,7 +178,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
       const horizontal = found.parent?.kind === 'row' && !(isMobile(found.parent.style) && found.parent.style.stack);
       const position = horizontal ? e.clientX - rect.left : e.clientY - rect.top;
       const size = horizontal ? rect.width : rect.height;
-      if (isContainer(n) && source.kind !== 'column' && position > 12 && position < size - 12) {
+      if (isContainer(n) && (source.kind === 'column' ? n.kind === 'row' : true) && position > 12 && position < size - 12) {
         parent = n.id; index = n.children.length;
       } else {
         parent = found.parent?.id ?? null; index = found.index + (position > size / 2 ? 1 : 0);
@@ -189,7 +189,6 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
     if (source.id) {
       const moving = locate(doc.nodes, source.id);
       if (!moving || (parent && walk([moving.list[moving.index]]).some(n => n.id === parent))) return null;
-      if (moving.parent?.kind === 'row' && moving.list.length === 1 && parent !== moving.parent.id) return null;
     }
     const zones = Array.from(canvas.querySelectorAll<HTMLElement>('[data-drop-index]'));
     const marker = zones.find(z => (z.dataset.dropParent || null) === parent && Number(z.dataset.dropIndex) === index);

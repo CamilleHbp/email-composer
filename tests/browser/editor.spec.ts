@@ -361,3 +361,41 @@ test('imports MySigmail with mixed formatting and keeps it after editing and sav
   await page.getByRole('button', { name: 'Open Formatted Card', exact: true }).click();
   await expect(page.locator('.editable-text span')).toHaveCSS('color', 'rgb(173, 36, 148)');
 });
+
+test('move the last column into another columns block and undo', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('Email address').fill('test@example.test');
+  await page.getByLabel('Password', { exact: true }).fill('test-password-12345');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Create an email', exact: true })).toBeVisible();
+  const document = blank(); const source = node('row'); const target = node('row');
+  source.children = [source.children[0]];
+  source.children[0].children = [node('text', 'Moved column content')];
+  const targetText = node('text', 'Destination content');
+  target.children[0].children = [targetText];
+  document.nodes[0].children = [source, target];
+  const response = await page.request.post('/api/templates', {
+    data: { name: 'Move last column regression', kind: 'template', collectionId: null, document },
+    headers: { Origin: new URL(page.url()).origin },
+  });
+  expect(response.ok()).toBe(true);
+  await page.reload();
+  await page.getByRole('button', { name: 'Open Move last column regression', exact: true }).click();
+  const column = page.locator(`[data-node-id="${source.children[0].id}"]`);
+  await column.click();
+  const handle = column.locator('[draggable="true"]').first();
+  const destination = page.locator(`[data-node-id="${targetText.id}"]`);
+  const rect = (await destination.boundingBox())!;
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+  await handle.dispatchEvent('dragstart', { dataTransfer });
+  const point = { dataTransfer, clientX: rect.x + rect.width / 2, clientY: rect.y + rect.height / 2 };
+  await destination.dispatchEvent('dragover', point);
+  await expect(page.locator('.drop-indicator')).toHaveAttribute('data-drop-parent', target.id);
+  await destination.dispatchEvent('drop', point);
+  await expect(page.locator(`[data-node-id="${source.id}"]`)).toHaveCount(0);
+  await expect(page.locator(`[data-node-id="${target.id}"] > .kind-column`)).toHaveCount(3);
+  await expect(column).toContainText('Moved column content');
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(page.locator(`[data-node-id="${source.id}"] > .kind-column`)).toHaveCount(1);
+  await expect(page.locator(`[data-node-id="${target.id}"] > .kind-column`)).toHaveCount(2);
+});

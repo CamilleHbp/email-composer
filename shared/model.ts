@@ -132,11 +132,14 @@ export function moveNode(doc: EmailDocument, id: string, targetId: string | null
   if (!source || !moving || (targetId && (!target || !isContainer(target)))) throw new Error('invalid_move');
   if (targetId && walk([moving]).some(n => n.id === targetId)) throw new Error('invalid_move');
   if (moving.kind === 'column' ? target?.kind !== 'row' : target?.kind === 'row') throw new Error('invalid_move');
-  if (source.parent?.kind === 'row' && source.list.length === 1 && target !== source.parent) throw new Error('last_column');
   const destination = target ? target.children : next.nodes;
   const adjusted = source.list === destination && source.index < index ? index - 1 : index;
   source.list.splice(source.index, 1);
   destination.splice(Math.max(0, Math.min(adjusted, destination.length)), 0, moving);
+  if (source.parent?.kind === 'row' && source.list.length === 0) {
+    const emptyRow = locate(next.nodes, source.parent.id)!;
+    emptyRow.list.splice(emptyRow.index, 1);
+  }
   return validateDocument(next);
 }
 export function deleteNode(doc: EmailDocument, id: string): EmailDocument {
