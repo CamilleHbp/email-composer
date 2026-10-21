@@ -9,6 +9,7 @@ test('desktop viewport stays above imported mobile breakpoints', async ({ page }
   await expect(page.getByRole('button', { name: 'Create an email', exact: true })).toBeVisible();
   const document = blank();
   document.width = 600;
+  document.paddingSides = [0, 0, 0, 0];
   const row = node('row');
   row.style.mobileBreakpoint = 600;
   const text = node('text', 'Desktop-only content');
@@ -36,13 +37,13 @@ test('desktop viewport stays above imported mobile breakpoints', async ({ page }
   await expect(page.getByRole('button', { name: 'Desktop', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await width.fill('600');
   await expect(page.getByRole('button', { name: 'Mobile', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(columns).toHaveCSS('flex-direction', 'column');
+  await expect(columns).toHaveCSS('flex-wrap', 'wrap');
   await expect(desktopText).toBeHidden();
   await page.getByRole('button', { name: 'Desktop', exact: true }).click();
   await expect(columns).toHaveCSS('flex-direction', 'row');
   await expect(desktopText).toBeVisible();
   await page.getByRole('button', { name: 'Mobile', exact: true }).click();
-  await expect(columns).toHaveCSS('flex-direction', 'column');
+  await expect(columns).toHaveCSS('flex-wrap', 'wrap');
   await page.getByRole('button', { name: 'Preview', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Desktop', exact: true }).click();

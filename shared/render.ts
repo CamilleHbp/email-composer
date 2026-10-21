@@ -1,4 +1,4 @@
-import type { EmailDocument, EmailNode } from './model';
+import type { EmailDocument, EmailNode, NodeStyle } from './model';
 import { walk } from './model';
 import { formattedText, formattedPlainText, nodeCss, paddingInsets, insetsCss } from './formatting';
 
@@ -10,8 +10,19 @@ export function richText(text: string, rich = false, paragraphSpacing?: number):
     .replace(/&lt;(\/?)(strong|em|u)&gt;/g, '<$1$2>');
 }
 export function plainText(text: string, rich = false): string { if (rich) return formattedPlainText(text); return text.replace(/<\/?(strong|em|u)>/g, ''); }
-const table = (content: string, extra = '') => `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ${extra}><tbody>${content}</tbody></table>`;
+// Proton's paste sanitizer drops cellpadding/cellspacing, so layout also lives in CSS.
+const table = (content: string, extra = '', hug = false) => `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;border-spacing:0;${hug ? 'width:auto;max-width:100%;' : ''}" ${extra}><tbody>${content}</tbody></table>`;
 export interface RenderOptions { assets: Record<string, string>; clipboard?: boolean; containerWidth?: number }
+export function contentWidth(s: NodeStyle, containerWidth: number): number {
+  const padding = paddingInsets(s), margin = s.marginSides ?? [0, 0, 0, 0];
+  const borders = (s.borderSides?.left?.width ?? s.border) + (s.borderSides?.right?.width ?? s.border);
+  return Math.max(1, containerWidth - margin[1] - margin[3] - padding[1] - padding[3] - borders);
+}
+export function columnWidths(n: EmailNode, available: number): number[] {
+  const sum = Math.max(100, n.children.reduce((total, c) => total + c.style.width, 0));
+  const space = Math.max(0, available - n.style.gap * Math.max(0, n.children.length - 1));
+  return n.children.map(c => Math.floor(space * c.style.width / sum));
+}
 function imageUrl(url: string | undefined): string {
   // The standalone development server publishes images on its loopback origin.
   const localAsset = /^http:\/\/localhost:5173\/api\/dev-assets\/published\/[a-f0-9-]+\/[a-f0-9-]+\.png$/;
@@ -23,38 +34,42 @@ export function renderNode(n: EmailNode, options: RenderOptions, css: string[]):
   const mobileClass = `hidden-${n.id}`;
   if (s.hiddenOnMobile) css.push(`@media only screen and (max-width:${s.mobileBreakpoint ?? 480}px){.${mobileClass}{display:none!important;max-height:0!important;overflow:hidden!important;mso-hide:all!important}}`);
   let body = '';
-  const padding = paddingInsets(s);
-  const available = Math.max(40, (options.containerWidth ?? 640) - padding[1] - padding[3]);
+  const available = contentWidth(s, options.containerWidth ?? 640);
   if (n.kind === 'row') {
     const sum = Math.max(100, n.children.reduce((a, c) => a + c.style.width, 0));
     const unused = Math.max(0, 100 - n.children.reduce((a, c) => a + c.style.width / sum * 100, 0));
     const klass = `col-${n.id}`;
     if (s.stack && !options.clipboard) css.push(`@media only screen and (max-width:${s.mobileBreakpoint ?? 480}px){.${klass}{display:block!important;width:100%!important;box-sizing:border-box!important}.${klass}-gap{display:none!important}}`);
     const gap = s.gap;
-    const columnSpace = Math.max(0, available - gap * Math.max(0, n.children.length - 1));
-    const fill = (percent: number) => percent > 0 ? `<td width="${percent}%" style="width:${percent}%;font-size:0;">&nbsp;</td>` : '';
+    const widths = columnWidths(n, available);
+    const fill = (percent: number) => percent > 0 ? `<td width="${percent}%" style="padding:0;width:${percent}%;font-size:0;">&nbsp;</td>` : '';
     const leading = s.distribution === 'end' ? unused : s.distribution === 'center' ? unused / 2 : 0;
     const trailing = s.distribution === 'start' ? unused : s.distribution === 'center' ? unused / 2 : 0;
     const cells = n.children.map((c, i) => {
-      const content = renderNode({ ...c, style: { ...c.style, fontFamily: c.style.fontFamily ?? s.fontFamily } }, { ...options, containerWidth: columnSpace * c.style.width / sum }, css);
-      // Clipboard output uses fluid inline-block columns: wrapping does not need head CSS.
-      if (options.clipboard && s.stack) return `<div${c.style.hiddenOnMobile ? ` class="hidden-${c.id}"` : ''} style="display:inline-block;vertical-align:${c.style.vertical};width:100%;max-width:${Math.floor(columnSpace * c.style.width / sum) + gap}px;padding:0 ${gap / 2}px;box-sizing:border-box;">${content}</div>`;
+      const content = renderNode({ ...c, style: { ...c.style, fontFamily: c.style.fontFamily ?? s.fontFamily } }, { ...options, containerWidth: widths[i] }, css);
+      // Table widths survive Proton's paste sanitizer, which removes div widths.
+      // Inline tables wrap without depending on a stylesheet in the pasted message.
+      if (options.clipboard && s.stack) return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"${c.style.hiddenOnMobile ? ` class="hidden-${c.id}"` : ''} style="display:inline-table;vertical-align:${c.style.vertical};width:100%;max-width:${widths[i] + gap}px;table-layout:fixed;border-collapse:collapse;border-spacing:0;"><tbody><tr><td style="padding:0 ${gap / 2}px;">${content}</td></tr></tbody></table>`;
       const between = i && s.distribution === 'between' ? fill(unused / Math.max(1, n.children.length - 1)) : '';
-      return `${between}${i && gap ? `<td class="${klass}-gap" width="${gap}" style="width:${gap}px;font-size:0;">&nbsp;</td>` : ''}<td class="${klass}${c.style.hiddenOnMobile ? ` hidden-${c.id}` : ''}" width="${c.style.width / sum * 100}%" valign="${c.style.vertical}" style="vertical-align:${c.style.vertical};">${content}</td>`;
+      return `${between}${i && gap ? `<td class="${klass}-gap" width="${gap}" style="padding:0;width:${gap}px;font-size:0;">&nbsp;</td>` : ''}<td class="${klass}${c.style.hiddenOnMobile ? ` hidden-${c.id}` : ''}" width="${c.style.width / sum * 100}%" valign="${c.style.vertical}" style="padding:0;vertical-align:${c.style.vertical};">${content}</td>`;
     }).join('');
     body = options.clipboard && s.stack ? `<div style="font-size:0;margin:0 -${gap / 2}px;text-align:${s.distribution === 'center' ? 'center' : s.distribution === 'end' ? 'right' : s.align};">${cells}</div>` : table(`<tr>${fill(leading)}${cells}${fill(trailing)}</tr>`);
   } else if (n.kind === 'section' || n.kind === 'column') {
-    body = table(n.children.map((c, i) => `${i && s.gap ? `<tr><td height="${s.gap}" style="height:${s.gap}px;font-size:0;">&nbsp;</td></tr>` : ''}<tr><td>${renderNode({ ...c, style: { ...c.style, fontFamily: c.style.fontFamily ?? s.fontFamily } }, { ...options, containerWidth: available }, css)}</td></tr>`).join(''));
+    body = table(n.children.map((c, i) => `${i && s.gap ? `<tr><td height="${s.gap}" style="padding:0;height:${s.gap}px;font-size:0;">&nbsp;</td></tr>` : ''}<tr><td style="padding:0;">${renderNode({ ...c, style: { ...c.style, fontFamily: c.style.fontFamily ?? s.fontFamily } }, { ...options, containerWidth: available }, css)}</td></tr>`).join(''));
   } else if (n.kind === 'image') {
     const url = imageUrl(n.assetId ? options.assets[n.assetId] : n.remoteSrc);
-    body = url ? `<img src="${url}" alt="${escape(n.alt)}" width="${Math.round(Math.min(available, s.imageWidth ?? available * s.width / 100))}" style="display:block;width:${s.imageWidth ? `${s.imageWidth}px` : `${s.width}%`};max-width:100%;height:${s.imageHeight ? `${s.imageHeight}px` : 'auto'};border:0;border-radius:${s.corners ? insetsCss(s.corners) : `${s.radius}px`};margin:${s.align === 'center' ? '0 auto' : s.align === 'right' ? '0 0 0 auto' : '0'};"/>` : `<span>${escape(n.alt)}</span>`;
+    // Keep the CSS and HTML widths consistent: mail clients may ignore max-width.
+    const imageWidth = Math.max(1, Math.floor(Math.min(available, s.imageWidth ?? available * s.width / 100)));
+    body = url ? `<img src="${url}" alt="${escape(n.alt)}" width="${imageWidth}" style="display:block;width:${s.imageWidth ? `${imageWidth}px` : `${s.width}%`};max-width:100%;height:${s.imageHeight ? `${s.imageHeight}px` : 'auto'};border:0;border-radius:${s.corners ? insetsCss(s.corners) : `${s.radius}px`};margin:${s.align === 'center' ? '0 auto' : s.align === 'right' ? '0 0 0 auto' : '0'};"/>` : `<span>${escape(n.alt)}</span>`;
     if (url && /^https?:\/\//i.test(n.href)) body = `<a href="${escape(n.href)}">${body}</a>`;
-  } else if (n.kind === 'heading') body = `<h2 style="margin:0;font-size:${s.fontSize}px;line-height:1.2;font-weight:700;">${richText(n.text, n.rich, s.paragraphSpacing)}</h2>`;
-  else if (n.kind === 'text') body = `<div>${richText(n.text, n.rich, s.paragraphSpacing)}</div>`;
+  } else if (n.kind === 'heading') body = `<h2 style="margin:0;font:700 ${s.fontSize}px/1.2 ${escape(s.fontFamily ?? 'Arial,Helvetica,sans-serif')};">${richText(n.text, n.rich, s.paragraphSpacing)}</h2>`;
+  // A self-contained font shorthand survives paste sanitizers deduplicating
+  // inherited typography across tables (whose inheritance differs in quirks mode).
+  else if (n.kind === 'text') body = `<div style="font:${s.fontSize}px/${s.lineHeight ?? 1.5} ${escape(s.fontFamily ?? 'Arial,Helvetica,sans-serif')};">${richText(n.text, n.rich, s.paragraphSpacing)}</div>`;
   else if (n.kind === 'button') body = `<a href="${escape(n.href)}" style="display:inline-block;${n.rich ? nodeCss(s) : `color:${s.color};`}text-decoration:none;font-weight:700;">${richText(n.text, n.rich, s.paragraphSpacing)}</a>`;
   else if (n.kind === 'divider') body = `<div style="border-top:${s.dividerHeight ?? 1}px solid ${s.borderColor};font-size:0;line-height:0;">&nbsp;</div>`;
   else body = `<div style="height:${s.height}px;line-height:${s.height}px;">&nbsp;</div>`;
-  let result = table(`<tr><td${s.minHeight ? ` height="${s.minHeight}"` : ''} style="${common}">${body}</td></tr>`, `${s.hiddenOnMobile ? `class="${mobileClass}"` : ''}${s.hug ? ` style="width:auto;max-width:100%;" align="${s.align}"` : ''}`);
+  let result = table(`<tr><td${s.minHeight ? ` height="${s.minHeight}"` : ''} style="${common}">${body}</td></tr>`, `${s.hiddenOnMobile ? `class="${mobileClass}"` : ''}${s.hug ? ` align="${s.align}"` : ''}`, s.hug);
   if (s.marginSides) result = table(`<tr><td style="padding:${insetsCss(s.marginSides)}">${result}</td></tr>`, s.hiddenOnMobile ? `class="${mobileClass}"` : '');
   return result;
 }

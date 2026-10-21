@@ -46,15 +46,15 @@ test('mobile columns grow with their contents and nested rows stay contained', a
     const errors: string[] = [];
     for (const row of canvas.querySelectorAll('.kind-row')) {
       const bounds = row.getBoundingClientRect();
-      let bottom = bounds.top;
+      const previous: DOMRect[] = [];
       for (const column of row.querySelectorAll(':scope > .kind-column')) {
         const rect = column.getBoundingClientRect();
-        if (rect.top < bottom - 1 || rect.bottom > bounds.bottom + 1) errors.push('overlapping columns');
-        if (Math.abs(rect.width - bounds.width) > 1) errors.push('column not stretched');
+        if (previous.some(other => rect.left < other.right - 1 && rect.right > other.left + 1 && rect.top < other.bottom - 1 && rect.bottom > other.top + 1)) errors.push('overlapping columns');
+        if (rect.width > bounds.width + 1 || rect.bottom > bounds.bottom + 1) errors.push('column overflow');
         for (const content of column.querySelectorAll('.canvas-slot')) {
           if (content.getBoundingClientRect().bottom > rect.bottom + 1) errors.push('content overflow');
         }
-        bottom = rect.bottom;
+        previous.push(rect);
       }
     }
     return errors;
@@ -64,14 +64,14 @@ test('mobile columns grow with their contents and nested rows stay contained', a
   expect(await columns.evaluateAll(items => items.map(el => el.getBoundingClientRect().width))).toEqual(desktop);
   const width = page.getByRole('spinbutton', { name: 'Preview width', exact: true });
   await width.fill('600');
-  await expect(outer).toHaveCSS('flex-direction', 'column');
+  await expect(outer).toHaveCSS('flex-wrap', 'wrap');
   await width.fill('601');
   await expect(outer).toHaveCSS('flex-direction', 'row');
   const handle = page.getByRole('slider', { name: 'Drag to resize preview' });
   await handle.focus();
   await page.keyboard.press('ArrowLeft');
   await expect(width).toHaveValue('600');
-  await expect(outer).toHaveCSS('flex-direction', 'column');
+  await expect(outer).toHaveCSS('flex-wrap', 'wrap');
   const bounds = (await handle.boundingBox())!;
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 30);
   await page.mouse.down();

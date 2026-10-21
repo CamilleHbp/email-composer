@@ -5,7 +5,7 @@ import { api, download } from './api';
 import { Dialog, Field, ErrorNotice, ImageLibrary } from './components';
 import type { Translate } from './i18n';
 import { assetIds, cloneNode, deleteNode, isContainer, kinds, locate, moveNode, node, validateDocument, walk, type EmailDocument, type EmailNode, type Kind, type TemplateRecord } from '../shared/model';
-import { plainText, renderEmail, richText } from '../shared/render';
+import { columnWidths, contentWidth, plainText, renderEmail, richText } from '../shared/render';
 import { formattedText, insetsCss, paddingInsets } from '../shared/formatting';
 
 type Props = {
@@ -26,7 +26,8 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
   const [tab, setTab] = useState<'blocks' | 'layers' | 'sections'>('blocks');
   const [modal, setModal] = useState<'preview' | 'export' | 'images' | null>(null);
   const [customPreviewWidth, setPreviewWidth] = useState<number | null>(null);
-  const desktopPreviewWidth = Math.max(doc.width, MOBILE_MAX_WIDTH + 1);
+  const documentPadding = doc.paddingSides ?? [16, 16, 16, 16];
+  const desktopPreviewWidth = Math.max(doc.width + documentPadding[1] + documentPadding[3], MOBILE_MAX_WIDTH + 1);
   const previewWidth = customPreviewWidth ?? desktopPreviewWidth;
   const mobile = previewWidth <= MOBILE_MAX_WIDTH;
   const [dropPreview, setDropPreview] = useState<{ parent: string | null; left: number; top: number; width: number; height: number } | null>(null);
@@ -230,19 +231,22 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
   function dropZone(parent: string | null, index: number) {
     return <div className="drop-zone" key={`drop-${index}`} data-drop-parent={parent ?? ''} data-drop-index={index}/>;
   }
-  function canvasNode(n: EmailNode, stacked = false) {
+  function canvasNode(n: EmailNode, containerWidth = doc.width, fluidColumn = false, inheritedFont = doc.fontFamily ?? 'Arial,Helvetica,sans-serif') {
     const s = n.style;
     const container = isContainer(n);
     const style: CSSProperties = { padding: insetsCss(paddingInsets(s)), margin: s.marginSides ? insetsCss(s.marginSides) : undefined, opacity: s.opacity, fontFamily: s.fontFamily ?? doc.fontFamily, lineHeight: s.lineHeight, minHeight: s.minHeight, backgroundColor: s.background, backgroundImage: s.backgroundImage ? `url("${s.backgroundImage.url}")` : undefined, backgroundSize: s.backgroundImage?.size, backgroundPosition: s.backgroundImage?.position, backgroundRepeat: s.backgroundImage?.repeat, color: s.color, fontSize: s.fontSize, textAlign: s.align, border: `${s.border}px solid ${s.borderColor}`, borderRadius: s.corners ? insetsCss(s.corners) : s.radius };
     if (s.borderSides) for (const [side, b] of Object.entries(s.borderSides)) if (b) Object.assign(style, { [`border${side[0].toUpperCase()}${side.slice(1)}`]: `${b.width}px ${b.style} ${b.color}` });
-    const stackColumns = n.kind === 'row' && mobile && s.stack;
-    if (container) Object.assign(style, { display: 'flex', flexDirection: n.kind === 'row' && !stackColumns ? 'row' : 'column', gap: s.gap, alignItems: n.kind === 'row' ? (stackColumns ? 'stretch' : s.vertical === 'middle' ? 'center' : s.vertical === 'bottom' ? 'flex-end' : 'stretch') : undefined, justifyContent: s.distribution === 'between' ? 'space-between' : s.distribution === 'center' ? 'center' : s.distribution === 'end' ? 'flex-end' : 'flex-start' });
-    if (mobile && s.hiddenOnMobile) style.display = 'none';
-    if (n.kind === 'column') Object.assign(style, { flex: stacked ? '0 0 auto' : `${s.width} 1 0`, minWidth: 0, alignSelf: stacked ? 'stretch' : s.vertical === 'middle' ? 'center' : s.vertical === 'bottom' ? 'flex-end' : 'flex-start' });
+    const available = contentWidth(s, containerWidth);
+    const widths = n.kind === 'row' ? columnWidths(n, available) : [];
+    style.fontFamily = s.fontFamily ?? inheritedFont;
+    style.lineHeight = s.lineHeight ?? 1.5;
+    if (container) Object.assign(style, { display: 'flex', flexDirection: n.kind === 'row' ? 'row' : 'column', flexWrap: n.kind === 'row' && s.stack ? 'wrap' : undefined, gap: s.gap, rowGap: n.kind === 'row' && s.stack ? 0 : s.gap, alignItems: n.kind === 'row' ? 'flex-start' : undefined, justifyContent: s.distribution === 'between' && !s.stack ? 'space-between' : s.distribution === 'center' || (n.kind === 'row' && s.stack && s.align === 'center') ? 'center' : s.distribution === 'end' || (n.kind === 'row' && s.stack && s.align === 'right') ? 'flex-end' : 'flex-start' });
+    if (previewWidth <= (s.mobileBreakpoint ?? 480) && s.hiddenOnMobile) style.display = 'none';
+    if (n.kind === 'column') Object.assign(style, { flex: fluidColumn ? '0 0 auto' : `${s.width} 1 0`, width: fluidColumn ? '100%' : undefined, maxWidth: fluidColumn ? containerWidth : undefined, minWidth: 0, alignSelf: s.vertical === 'middle' ? 'center' : s.vertical === 'bottom' ? 'flex-end' : 'flex-start' });
     return <div key={n.id} data-node-id={n.id} className={`canvas-node ${container ? 'container-node' : ''} ${selection === n.id ? 'selected' : ''} ${dropPreview?.parent === n.id ? 'drop-container' : ''} kind-${n.kind}`} style={style} onClick={e => { e.stopPropagation(); setSelection(n.id); }}>
       <button className="node-handle" draggable onDragStart={e => { e.dataTransfer.setData('application/mail-studio-node', n.id); }} aria-label={`${t('moveTo')} ${t(n.kind)}`} onClick={() => setSelection(n.id)}><GripVertical size={13}/>{t(n.kind)}</button>
-      {container ? (n.children.length ? n.children.map((child, i) => n.kind === 'row' ? canvasNode(child, stackColumns) : <div className="canvas-slot" key={child.id}>{dropZone(n.id, i)}{canvasNode(child)}</div>) : <div className="empty-container">{t('dropHere')}<button className="icon-button" aria-label={t('addBlock')} onClick={e => { e.stopPropagation(); add('text', n.id); }}><Plus size={18}/></button></div>) :
-        n.kind === 'image' ? (n.assetId || n.remoteSrc ? <img draggable={false} onError={() => setImageLoadFailed(true)} src={n.assetId ? `/api/assets/${n.assetId}/content` : n.remoteSrc} alt={n.alt} style={{ width: s.imageWidth ?? `${s.width}%`, height: s.imageHeight ?? 'auto', borderRadius: s.corners ? insetsCss(s.corners) : s.radius, maxWidth: '100%', display: 'block', margin: s.align === 'center' ? '0 auto' : s.align === 'right' ? '0 0 0 auto' : 0 }}/> : <button className="image-placeholder" onClick={() => setModal('images')}><Image size={25}/>{t('chooseImage')}</button>) :
+      {container ? (n.children.length ? n.children.map((child, i) => n.kind === 'row' ? canvasNode(child, widths[i], s.stack, style.fontFamily) : <div className="canvas-slot" key={child.id} style={child.style.hiddenOnMobile && previewWidth <= (child.style.mobileBreakpoint ?? 480) ? { display: 'none' } : undefined}>{dropZone(n.id, i)}{canvasNode(child, available, false, style.fontFamily)}</div>) : <div className="empty-container">{t('dropHere')}<button className="icon-button" aria-label={t('addBlock')} onClick={e => { e.stopPropagation(); add('text', n.id); }}><Plus size={18}/></button></div>) :
+        n.kind === 'image' ? (n.assetId || n.remoteSrc ? <img draggable={false} onError={() => setImageLoadFailed(true)} src={n.assetId ? `/api/assets/${n.assetId}/content` : n.remoteSrc} alt={n.alt} style={{ width: s.imageWidth ? Math.max(1, Math.floor(Math.min(s.imageWidth, available))) : `${s.width}%`, height: s.imageHeight ?? 'auto', borderRadius: s.corners ? insetsCss(s.corners) : s.radius, maxWidth: '100%', display: 'block', margin: s.align === 'center' ? '0 auto' : s.align === 'right' ? '0 0 0 auto' : 0 }}/> : <button className="image-placeholder" onClick={() => setModal('images')}><Image size={25}/>{t('chooseImage')}</button>) :
         n.kind === 'divider' ? <hr style={{ border: 0, borderTop: `${s.dividerHeight ?? 1}px solid ${s.borderColor}` }}/> :
         n.kind === 'spacer' ? <div style={{ height: s.height }}/> :
         <div className={`editable-text ${n.kind}`} contentEditable suppressContentEditableWarning role="textbox" aria-label={t(n.kind)} onBlur={e => {
@@ -288,7 +292,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
       <main className="workspace" onClick={() => setSelection(null)}>
         <div className="canvas-toolbar"><PreviewSizeControls width={previewWidth} desktopWidth={desktopPreviewWidth} onChange={setPreviewWidth} t={t}/></div>
         <PreviewViewport width={previewWidth} onChange={setPreviewWidth} t={t}>
-        <div className="email-canvas" style={{ width: previewWidth, backgroundColor: doc.background, padding: doc.paddingSides ? insetsCss(doc.paddingSides) : undefined, fontFamily: doc.fontFamily, backgroundImage: doc.backgroundImage ? `url("${doc.backgroundImage.url}")` : undefined, backgroundRepeat: doc.backgroundImage?.repeat, backgroundSize: doc.backgroundImage?.size, backgroundPosition: doc.backgroundImage?.position }} onDragOver={e => {
+        <div className="email-canvas" style={{ width: previewWidth, backgroundColor: doc.background, padding: doc.paddingSides ? insetsCss(doc.paddingSides) : '16px', fontFamily: doc.fontFamily ?? 'Arial,Helvetica,sans-serif', backgroundImage: doc.backgroundImage ? `url("${doc.backgroundImage.url}")` : undefined, backgroundRepeat: doc.backgroundImage?.repeat, backgroundSize: doc.backgroundImage?.size, backgroundPosition: doc.backgroundImage?.position }} onDragOver={e => {
           const destination = canvasDestination(e);
           e.preventDefault(); e.stopPropagation();
           e.dataTransfer.dropEffect = destination ? (dragSource.current?.id ? 'move' : 'copy') : 'none';
@@ -299,7 +303,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
           if (destination) drop(e, destination.parent, destination.index);
         }}>
           {dropPreview && <div className="drop-indicator" data-drop-parent={dropPreview.parent ?? ''} aria-hidden="true" style={{ left: dropPreview.left, top: dropPreview.top, width: dropPreview.width, height: dropPreview.height }}/>}
-          {doc.nodes.map((n, i) => <div key={n.id}>{dropZone(null, i)}{canvasNode(n)}</div>)}{dropZone(null, doc.nodes.length)}
+          <div style={{ position: 'relative', maxWidth: doc.width, margin: '0 auto' }}>{doc.nodes.map((n, i) => <div key={n.id} style={{ position: 'relative' }}>{dropZone(null, i)}{canvasNode(n)}</div>)}{dropZone(null, doc.nodes.length)}</div>
           {!doc.nodes.length && <button className="empty-canvas" onClick={() => add('section')}><Plus size={22}/>{t('addBlock')}</button>}
         </div>
         </PreviewViewport>
