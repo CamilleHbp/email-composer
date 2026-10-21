@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type CSSProperties } from 'react';
-import { ArrowLeft, Undo2, Redo2, Eye, ArrowUpRight, Plus, Type, AlignLeft, Image, MousePointer2, Minus, MoveVertical, Columns2, Square, Copy, Trash2, ChevronUp, ChevronDown, Save, Monitor, Smartphone, Download, Clipboard, Check, GripVertical, Layers } from 'lucide-react';
+import { ArrowLeft, Undo2, Redo2, Eye, ArrowUpRight, Plus, Type, AlignLeft, Image, MousePointer2, Minus, MoveVertical, Columns2, Square, Copy, Trash2, ChevronUp, ChevronDown, Save, Download, Clipboard, Check, GripVertical, Layers } from 'lucide-react';
+import { PreviewSizeControls, PreviewViewport } from './PreviewViewport';
 import { api, download } from './api';
 import { Dialog, Field, ErrorNotice, ImageLibrary } from './components';
 import type { Translate } from './i18n';
@@ -24,7 +25,9 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
   const [future, setFuture] = useState<EmailDocument[]>([]);
   const [tab, setTab] = useState<'blocks' | 'layers' | 'sections'>('blocks');
   const [modal, setModal] = useState<'preview' | 'export' | 'images' | null>(null);
-  const [mobile, setMobile] = useState(false);
+  const [customPreviewWidth, setPreviewWidth] = useState<number | null>(null);
+  const previewWidth = customPreviewWidth ?? doc.width;
+  const isMobile = (style: EmailNode['style']) => previewWidth <= (style.mobileBreakpoint ?? 480);
   const [dropPreview, setDropPreview] = useState<{ parent: string | null; left: number; top: number; width: number; height: number } | null>(null);
   const dragSource = useRef<{ id: string; kind: Kind } | null>(null);
   const [preview, setPreview] = useState('');
@@ -172,7 +175,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
       const found = locate(doc.nodes, block.dataset.nodeId!)!;
       const n = found.list[found.index];
       const rect = block.getBoundingClientRect();
-      const horizontal = found.parent?.kind === 'row' && !(mobile && found.parent.style.stack);
+      const horizontal = found.parent?.kind === 'row' && !(isMobile(found.parent.style) && found.parent.style.stack);
       const position = horizontal ? e.clientX - rect.left : e.clientY - rect.top;
       const size = horizontal ? rect.width : rect.height;
       if (isContainer(n) && source.kind !== 'column' && position > 12 && position < size - 12) {
@@ -215,7 +218,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
     const nodeElement = nodeElements.find(el => el.dataset.nodeId === child?.id);
     if (!nodeElement) return null;
     const rect = nodeElement.getBoundingClientRect();
-    const horizontal = target?.kind === 'row' && !(mobile && target.style.stack);
+    const horizontal = target?.kind === 'row' && !(isMobile(target.style) && target.style.stack);
     const after = index === children.length;
     const containerRect = targetElement?.getBoundingClientRect() ?? bounds;
     const insetLeft = Math.max(rect.left, containerRect.left + 8);
@@ -232,9 +235,9 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
     const container = isContainer(n);
     const style: CSSProperties = { padding: insetsCss(paddingInsets(s)), margin: s.marginSides ? insetsCss(s.marginSides) : undefined, opacity: s.opacity, fontFamily: s.fontFamily ?? doc.fontFamily, lineHeight: s.lineHeight, minHeight: s.minHeight, backgroundColor: s.background, backgroundImage: s.backgroundImage ? `url("${s.backgroundImage.url}")` : undefined, backgroundSize: s.backgroundImage?.size, backgroundPosition: s.backgroundImage?.position, backgroundRepeat: s.backgroundImage?.repeat, color: s.color, fontSize: s.fontSize, textAlign: s.align, border: `${s.border}px solid ${s.borderColor}`, borderRadius: s.corners ? insetsCss(s.corners) : s.radius };
     if (s.borderSides) for (const [side, b] of Object.entries(s.borderSides)) if (b) Object.assign(style, { [`border${side[0].toUpperCase()}${side.slice(1)}`]: `${b.width}px ${b.style} ${b.color}` });
-    const stackColumns = n.kind === 'row' && mobile && s.stack;
+    const stackColumns = n.kind === 'row' && isMobile(s) && s.stack;
     if (container) Object.assign(style, { display: 'flex', flexDirection: n.kind === 'row' && !stackColumns ? 'row' : 'column', gap: s.gap, alignItems: n.kind === 'row' ? (stackColumns ? 'stretch' : s.vertical === 'middle' ? 'center' : s.vertical === 'bottom' ? 'flex-end' : 'stretch') : undefined, justifyContent: s.distribution === 'between' ? 'space-between' : s.distribution === 'center' ? 'center' : s.distribution === 'end' ? 'flex-end' : 'flex-start' });
-    if (mobile && s.hiddenOnMobile) style.display = 'none';
+    if (isMobile(s) && s.hiddenOnMobile) style.display = 'none';
     if (n.kind === 'column') Object.assign(style, { flex: stacked ? '0 0 auto' : `${s.width} 1 0`, minWidth: 0 });
     return <div key={n.id} data-node-id={n.id} className={`canvas-node ${container ? 'container-node' : ''} ${selection === n.id ? 'selected' : ''} ${dropPreview?.parent === n.id ? 'drop-container' : ''} kind-${n.kind}`} style={style} onClick={e => { e.stopPropagation(); setSelection(n.id); }}>
       <button className="node-handle" draggable onDragStart={e => { e.dataTransfer.setData('application/mail-studio-node', n.id); }} aria-label={`${t('moveTo')} ${t(n.kind)}`} onClick={() => setSelection(n.id)}><GripVertical size={13}/>{t(n.kind)}</button>
@@ -283,8 +286,9 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
       <button className="document-settings" onClick={() => setSelection(null)}><SettingsIcon/>{t('document')}</button>
       </aside>
       <main className="workspace" onClick={() => setSelection(null)}>
-        <div className="canvas-toolbar"><div className="segmented"><button className={!mobile ? 'active' : ''} aria-label={t('desktop')} onClick={() => setMobile(false)}><Monitor size={17}/></button><button className={mobile ? 'active' : ''} aria-label={t('mobile')} onClick={() => setMobile(true)}><Smartphone size={17}/></button></div><span>{mobile ? 375 : doc.width} px</span></div>
-        <div className="email-canvas" style={{ width: mobile ? 375 : doc.width, backgroundColor: doc.background, padding: doc.paddingSides ? insetsCss(doc.paddingSides) : undefined, fontFamily: doc.fontFamily, backgroundImage: doc.backgroundImage ? `url("${doc.backgroundImage.url}")` : undefined, backgroundRepeat: doc.backgroundImage?.repeat, backgroundSize: doc.backgroundImage?.size, backgroundPosition: doc.backgroundImage?.position }} onDragOver={e => {
+        <div className="canvas-toolbar"><PreviewSizeControls width={previewWidth} desktopWidth={doc.width} onChange={setPreviewWidth} t={t}/></div>
+        <PreviewViewport width={previewWidth} onChange={setPreviewWidth} t={t}>
+        <div className="email-canvas" style={{ width: Math.min(previewWidth, doc.width), backgroundColor: doc.background, padding: doc.paddingSides ? insetsCss(doc.paddingSides) : undefined, fontFamily: doc.fontFamily, backgroundImage: doc.backgroundImage ? `url("${doc.backgroundImage.url}")` : undefined, backgroundRepeat: doc.backgroundImage?.repeat, backgroundSize: doc.backgroundImage?.size, backgroundPosition: doc.backgroundImage?.position }} onDragOver={e => {
           const destination = canvasDestination(e);
           e.preventDefault(); e.stopPropagation();
           e.dataTransfer.dropEffect = destination ? (dragSource.current?.id ? 'move' : 'copy') : 'none';
@@ -298,6 +302,7 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
           {doc.nodes.map((n, i) => <div key={n.id}>{dropZone(null, i)}{canvasNode(n)}</div>)}{dropZone(null, doc.nodes.length)}
           {!doc.nodes.length && <button className="empty-canvas" onClick={() => add('section')}><Plus size={22}/>{t('addBlock')}</button>}
         </div>
+        </PreviewViewport>
       </main>
       <aside className="inspector"><div className="inspector-title"><h2>{t(selected ? selected.kind : 'document')}</h2>{selected && <button className="icon-button" aria-label={t('delete')} onClick={() => { try { commit(deleteNode(doc, selected.id)); setSelection(null); } catch (e) { setError((e as Error).message); } }}><Trash2 size={16}/></button>}</div>
         {selected ? <>
@@ -340,13 +345,13 @@ export function Editor({ record, collections, sections, t, lang, onSave, onClose
     {notice && <div className="toast" role="status" onClick={() => setNotice('')}>{t(notice)}</div>}
     {modal && <Dialog t={t} title={t(modal === 'images' ? 'assets' : modal)} wide close={() => { if (!busy) { setModal(null); setManual(''); } }}>
       {modal === 'images' ? <ImageLibrary t={t} notify={setError} select={id => { if (selected?.kind === 'image') change(selected.id, n => { n.assetId = id; delete n.remoteSrc; }); setModal(null); }}/> : <>
-        <div className="preview-toolbar"><strong>{t('clipboardPreview')}</strong><button onClick={() => setMobile(!mobile)}>{mobile ? <Smartphone size={18}/> : <Monitor size={18}/>} {t(mobile ? 'mobile' : 'desktop')}</button></div>
+        <div className="preview-toolbar"><strong>{t('clipboardPreview')}</strong><PreviewSizeControls width={previewWidth} desktopWidth={doc.width} onChange={setPreviewWidth} t={t}/></div>
         <p className="muted">{t('previewHint')}</p>
         {warnings.map(w => <p key={w} className="notice">{t(w)}</p>)}
         <ErrorNotice error={error} t={t}/>
         <div className="export-options"><div><button className="primary" disabled={busy} onClick={() => void run(() => exportEmail('copy'))}><Clipboard size={17}/>{t(busy ? 'busy' : 'copyEmail')}</button><p>{t('copyHint')}</p></div><details><summary>{t('otherFormats')}</summary><button disabled={busy} onClick={() => void run(() => exportEmail('eml'))}><Download size={17}/>{t('downloadEml')}</button><p>{t('emlHint')}</p><div className="export-links"><button disabled={busy} onClick={() => void run(() => exportEmail('html'))}>{t('downloadHtml')}</button><button disabled={busy} onClick={() => void run(() => exportEmail('archive'))}>{t('downloadArchive')}</button></div></details></div>
         {manual && <div className="notice"><p>{t('manualCopy')}</p><button onClick={() => { const body = manualFrame.current?.contentDocument?.body; if (!body) return; const range = document.createRange(); range.selectNodeContents(body); const sel = manualFrame.current?.contentWindow?.getSelection(); sel?.removeAllRanges(); sel?.addRange(range); manualFrame.current?.focus(); }}>{t('selectAll')}</button></div>}
-        <div className="preview-stage"><iframe ref={manualFrame} title={t('preview')} sandbox="allow-same-origin" style={{ width: mobile ? 375 : '100%' }} srcDoc={manual ? `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">${manual}</body></html>` : preview}/></div>
+        <div className="preview-stage"><PreviewViewport width={previewWidth} onChange={setPreviewWidth} t={t}><iframe ref={manualFrame} title={t('preview')} sandbox="allow-same-origin" style={{ width: '100%' }} srcDoc={manual ? `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">${manual}</body></html>` : preview}/></PreviewViewport></div>
       </>}
     </Dialog>}
   </div>;

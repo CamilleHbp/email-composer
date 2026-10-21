@@ -33,6 +33,8 @@ test('mobile columns grow with their contents and nested rows stay contained', a
   expect(response.ok()).toBe(true);
   await page.reload();
   await page.getByRole('button', { name: 'Open Mobile layout regression', exact: true }).click();
+  let saves = 0;
+  page.on('request', request => { if (request.method() === 'PUT' && request.url().includes('/api/templates/')) saves++; });
   const outer = page.locator(`[data-node-id="${row.id}"]`);
   const columns = outer.locator(':scope > .kind-column');
   const desktop = await columns.evaluateAll(items => items.map(el => el.getBoundingClientRect().width));
@@ -60,6 +62,37 @@ test('mobile columns grow with their contents and nested rows stay contained', a
   expect(issues).toEqual([]);
   await page.getByRole('button', { name: 'Desktop', exact: true }).click();
   expect(await columns.evaluateAll(items => items.map(el => el.getBoundingClientRect().width))).toEqual(desktop);
+  const width = page.getByRole('spinbutton', { name: 'Preview width', exact: true });
+  await width.fill('480');
+  await expect(outer).toHaveCSS('flex-direction', 'column');
+  await width.fill('481');
+  await expect(outer).toHaveCSS('flex-direction', 'row');
+  const handle = page.getByRole('slider', { name: 'Drag to resize preview' });
+  await handle.focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(width).toHaveValue('480');
+  await expect(outer).toHaveCSS('flex-direction', 'column');
+  const bounds = (await handle.boundingBox())!;
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width / 2 - 40, bounds.y + 30, { steps: 8 });
+  await page.mouse.up();
+  await expect(width).toHaveValue('400');
+  await expect(page.locator('.email-canvas')).toHaveCSS('width', '400px');
+  await width.fill('100');
+  await width.blur();
+  await expect(width).toHaveValue('240');
+  await width.fill('900');
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const dialogWidth = dialog.getByRole('spinbutton', { name: 'Preview width', exact: true });
+  await expect(dialogWidth).toHaveValue('900');
+  await expect(dialog.locator('iframe')).toHaveCSS('width', '900px');
+  await dialogWidth.fill('360');
+  await expect(dialog.locator('iframe')).toHaveCSS('width', '360px');
+  await expect.poll(() => dialog.locator('iframe').evaluate(frame => (frame as HTMLIFrameElement).contentWindow?.innerWidth)).toBe(360);
+  expect(saves).toBe(0);
+
 });
 
 test('drag preview matches nested insertion and clears after drop or cancellation', async ({ page }) => {

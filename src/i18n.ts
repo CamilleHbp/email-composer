@@ -75,6 +75,7 @@ export const messages = {
   upload: ['Upload image', 'Importer une image'], imageHint: ['Drop or paste an image. PNG, JPEG, WebP or GIF, up to 10 MB. Animated images use the first frame.', 'Déposez ou collez une image. PNG, JPEG, WebP ou GIF, jusqu’à 10 Mo. Les images animées utilisent la première image.'],
   privateImage: ['Private', 'Privée'], publishedImage: ['Published', 'Publiée'], revoke: ['Revoke public link', 'Révoquer le lien public'],
   revokeConfirm: ['Previously sent emails may lose this image. Cached copies cannot be recalled. Revoke the link?', 'Les e-mails déjà envoyés risquent de perdre cette image. Les copies en cache ne peuvent pas être rappelées. Révoquer le lien ?'],
+  previewWidth: ['Preview width', 'Largeur de l’aperçu'], resizePreview: ['Drag to resize preview', 'Faites glisser pour redimensionner l’aperçu'],
   preview: ['Preview', 'Aperçu'], desktop: ['Desktop', 'Ordinateur'], mobile: ['Mobile', 'Mobile'],
   otherFormats: ['Other formats', 'Autres formats'], clipboardPreview: ['Copy/paste preview', 'Aperçu du copier-coller'],
   previewHint: ['This is the layout copied to your clipboard. Paste it into the body of a new message in Proton Mail.', 'Cette mise en page est copiée dans le presse-papiers. Collez-la dans le corps d’un nouveau message dans Proton Mail.'],
