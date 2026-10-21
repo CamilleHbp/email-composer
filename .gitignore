@@ -1,0 +1,13 @@
+node_modules/
+.local/
+dist/
+.env
+.env.*
+!.env.example
+.serena/
+.impeccable/review/
+test-results/
+playwright-report/
+coverage/
+*.log
+.DS_Store

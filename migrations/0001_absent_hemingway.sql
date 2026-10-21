@@ -1,0 +1,1 @@
+ALTER TABLE "assets" ADD COLUMN "publication_nonce" uuid DEFAULT gen_random_uuid() NOT NULL;
